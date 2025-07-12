@@ -447,20 +447,24 @@
                 return;
             }
             records.sort((a, b) => {
-                const dateA = a['Masa Masuk'] ? new Date(a['Masa Masuk']) : 0;
-                const dateB = b['Masa Masuk'] ? new Date(b['Masa Masuk']) : 0;
-                if (!dateA) return 1;
-                if (!dateB) return -1;
+                const dateA = a && a['Masa Masuk'] ? new Date(a['Masa Masuk']) : null;
+                const dateB = b && b['Masa Masuk'] ? new Date(b['Masa Masuk']) : null;
+                if (!dateA || isNaN(dateA)) return 1;
+                if (!dateB || isNaN(dateB)) return -1;
                 return dateB - dateA;
             });
             records.forEach(record => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-gray-50';
-                const clockIn = record['Masa Masuk'] && !isNaN(new Date(record['Masa Masuk'])) ? new Date(record['Masa Masuk']) : null;
-                const clockOut = record['Masa Keluar'] && !isNaN(new Date(record['Masa Keluar'])) ? new Date(record['Masa Keluar']) : null;
-                const adminNameCol = currentUser.isAdmin ? `<td class="py-2 px-3">${record.Nama}</td>` : '';
-                tr.innerHTML = ` ${adminNameCol} <td class="py-2 px-3">${clockIn ? clockIn.toLocaleDateString('ms-MY') : '-'}</td> <td class="py-2 px-3">${clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3">${clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3"> <span class="px-2 py-1 text-xs font-semibold rounded-full ${record.Status === 'ON TIME' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}"> ${record.Status || '-'} </span> </td> `;
-                attendanceTableBody.appendChild(tr);
+                try {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-50';
+                    const clockIn = record['Masa Masuk'] && !isNaN(new Date(record['Masa Masuk'])) ? new Date(record['Masa Masuk']) : null;
+                    const clockOut = record['Masa Keluar'] && !isNaN(new Date(record['Masa Keluar'])) ? new Date(record['Masa Keluar']) : null;
+                    const adminNameCol = currentUser.isAdmin ? `<td class="py-2 px-3">${record.Nama}</td>` : '';
+                    tr.innerHTML = ` ${adminNameCol} <td class="py-2 px-3">${clockIn ? clockIn.toLocaleDateString('ms-MY') : '-'}</td> <td class="py-2 px-3">${clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3">${clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3"> <span class="px-2 py-1 text-xs font-semibold rounded-full ${record.Status === 'ON TIME' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}"> ${record.Status || '-'} </span> </td> `;
+                    attendanceTableBody.appendChild(tr);
+                } catch (e) {
+                    console.error("Gagal memaparkan rekod:", record, e);
+                }
             });
         }
         function populateTeacherFilter() { const teachers = [...new Set(allUserRecords.map(r => r.Nama))].sort(); teacherFilter.innerHTML = '<option value="all">Semua Guru</option>'; teachers.forEach(teacher => { const option = document.createElement('option'); option.value = teacher; option.textContent = teacher; teacherFilter.appendChild(option); }); }
