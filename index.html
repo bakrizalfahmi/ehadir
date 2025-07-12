@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Kehadiran</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Pustaka untuk Jana PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCFmD8knK4eRXGaWqXJ7zigxIK3qK9wEeg&libraries=places,geocoding&callback=initMaps" async defer></script>
@@ -106,13 +105,10 @@
                 <div class="space-y-4">
                     <button id="clock-in-btn" class="w-full py-4 text-lg font-bold text-white bg-green-600 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">CLOCK IN</button>
                     <button id="clock-out-btn" class="w-full py-4 text-lg font-bold text-white bg-red-600 rounded-lg shadow-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed">CLOCK OUT</button>
+                    <div id="attendance-status-box" class="text-center text-sm font-medium pt-2 h-5"></div>
                 </div>
                 <div id="map-canvas" class="bg-gray-200"></div>
             </div>
-            
-            <!-- KOTAK STATUS KEHADIRAN DIPINDAHKAN KE SINI -->
-            <div id="attendance-status-box" class="text-center text-sm font-medium mb-6"></div>
-
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div class="p-4 bg-blue-100 rounded-lg text-center">
                     <p class="text-sm text-blue-800 font-bold">TEPAT MASA</p>
@@ -460,8 +456,8 @@
             records.forEach(record => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50';
-                const clockIn = record['Masa Masuk'] ? new Date(record['Masa Masuk']) : null;
-                const clockOut = record['Masa Keluar'] ? new Date(record['Masa Keluar']) : null;
+                const clockIn = record['Masa Masuk'] && !isNaN(new Date(record['Masa Masuk'])) ? new Date(record['Masa Masuk']) : null;
+                const clockOut = record['Masa Keluar'] && !isNaN(new Date(record['Masa Keluar'])) ? new Date(record['Masa Keluar']) : null;
                 const adminNameCol = currentUser.isAdmin ? `<td class="py-2 px-3">${record.Nama}</td>` : '';
                 tr.innerHTML = ` ${adminNameCol} <td class="py-2 px-3">${clockIn ? clockIn.toLocaleDateString('ms-MY') : '-'}</td> <td class="py-2 px-3">${clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3">${clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3"> <span class="px-2 py-1 text-xs font-semibold rounded-full ${record.Status === 'ON TIME' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}"> ${record.Status || '-'} </span> </td> `;
                 attendanceTableBody.appendChild(tr);
@@ -470,7 +466,7 @@
         function populateTeacherFilter() { const teachers = [...new Set(allUserRecords.map(r => r.Nama))].sort(); teacherFilter.innerHTML = '<option value="all">Semua Guru</option>'; teachers.forEach(teacher => { const option = document.createElement('option'); option.value = teacher; option.textContent = teacher; teacherFilter.appendChild(option); }); }
         function populateMonthFilter() {
             if (!allUserRecords || allUserRecords.length === 0) return;
-            const validRecords = allUserRecords.filter(r => r && r['Masa Masuk']);
+            const validRecords = allUserRecords.filter(r => r && r['Masa Masuk'] && !isNaN(new Date(r['Masa Masuk'])));
             if (validRecords.length === 0) return;
             const months = [...new Set(validRecords.map(r => new Date(r['Masa Masuk']).toLocaleString('ms-MY', { month: 'long', year: 'numeric' })))];
             monthFilter.innerHTML = '<option value="all">Semua Bulan</option>';
@@ -482,9 +478,9 @@
                 monthFilter.appendChild(option);
             });
         }
-        function getFilteredRecords() { const selectedMonth = monthFilter.value; const selectedStatus = statusFilter.value; const selectedTeacher = currentUser.isAdmin ? teacherFilter.value : 'all'; let filteredRecords = allUserRecords.filter(r => r && r['Masa Masuk']); if (selectedStatus !== 'all') { filteredRecords = filteredRecords.filter(r => r.Status === selectedStatus); } if (selectedMonth !== 'all') { const [year, month] = selectedMonth.split('-'); filteredRecords = filteredRecords.filter(r => { const recordDate = new Date(r['Masa Masuk']); return recordDate.getFullYear() == year && recordDate.getMonth() == month; }); } if (currentUser.isAdmin && selectedTeacher !== 'all') { filteredRecords = filteredRecords.filter(r => r.Nama === selectedTeacher); } return filteredRecords; }
+        function getFilteredRecords() { const selectedMonth = monthFilter.value; const selectedStatus = statusFilter.value; const selectedTeacher = currentUser.isAdmin ? teacherFilter.value : 'all'; let filteredRecords = allUserRecords.filter(r => r && r['Masa Masuk'] && !isNaN(new Date(r['Masa Masuk']))); if (selectedStatus !== 'all') { filteredRecords = filteredRecords.filter(r => r.Status === selectedStatus); } if (selectedMonth !== 'all') { const [year, month] = selectedMonth.split('-'); filteredRecords = filteredRecords.filter(r => { const recordDate = new Date(r['Masa Masuk']); return recordDate.getFullYear() == year && recordDate.getMonth() == month; }); } if (currentUser.isAdmin && selectedTeacher !== 'all') { filteredRecords = filteredRecords.filter(r => r.Nama === selectedTeacher); } return filteredRecords; }
         function applyFilters() { const filteredRecords = getFilteredRecords(); onTimeCountEl.textContent = filteredRecords.filter(r => r.Status === 'ON TIME').length; lateCountEl.textContent = filteredRecords.filter(r => r.Status === 'LEWAT').length; renderTable(filteredRecords); }
-        function updateButtonStates() { const todayStr = new Date().toLocaleDateString('ms-MY'); const todayRecord = allUserRecords.find(r => r && r['Masa Masuk'] && new Date(r['Masa Masuk']).toLocaleDateString('ms-MY') === todayStr); if (todayRecord) { clockInBtn.disabled = true; clockOutBtn.disabled = !!todayRecord['Masa Keluar']; } else { clockInBtn.disabled = false; clockOutBtn.disabled = true; } }
+        function updateButtonStates() { const todayStr = new Date().toLocaleDateString('ms-MY'); const todayRecord = allUserRecords.find(r => r && r['Masa Masuk'] && !isNaN(new Date(r['Masa Masuk'])) && new Date(r['Masa Masuk']).toLocaleDateString('ms-MY') === todayStr); if (todayRecord) { clockInBtn.disabled = true; clockOutBtn.disabled = !!todayRecord['Masa Keluar']; } else { clockInBtn.disabled = false; clockOutBtn.disabled = true; } }
         function initAutocomplete() { const input = document.getElementById('sekolah-input'); const options = { componentRestrictions: { country: "my" }, fields: ["name", "formatted_address", "geometry"], types: ["establishment"] }; const autocomplete = new google.maps.places.Autocomplete(input, options); autocomplete.addListener('place_changed', () => { const place = autocomplete.getPlace(); if (place.geometry && place.geometry.location) { registrationCoords = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() }; } }); }
         async function handleRegister(e) { e.preventDefault(); displayMessage('Mengesahkan lokasi...', 'text-gray-600'); try { if (!registrationCoords) { const address = document.getElementById('sekolah-input').value; if (!address) { displayMessage('Sila masukkan nama sekolah atau guna lokasi semasa.', 'text-red-600'); return; } registrationCoords = await getSchoolCoordinates(address); } const userData = { nama: document.getElementById('register-nama').value, idPengguna: document.getElementById('register-id').value, email: document.getElementById('register-email').value, kataLaluan: document.getElementById('register-password').value, sekolah: document.getElementById('sekolah-input').value, lat: registrationCoords.lat, lng: registrationCoords.lng, isWBF: registerWBF.checked }; displayMessage('Mendaftar...', 'text-gray-600'); const data = { action: 'registerUser', data: userData }; fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) }).then(res => res.json()).then(response => { displayMessage(response.message, response.status === 'success' ? 'text-green-600' : 'text-red-600'); if (response.status === 'success') { registerForm.reset(); registrationCoords = null; setTimeout(() => showAuthUI('login'), 2000); } }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600')); } catch (error) { displayMessage('Gagal mengesahkan alamat sekolah. Pastikan nama adalah betul. ' + error.message, 'text-red-600'); } }
         function handleGetCurrentLocation() { if (!navigator.geolocation) { displayMessage('Geolocation tidak disokong oleh pelayar ini.', 'text-red-600'); return; } displayMessage('Mendapatkan lokasi semasa...', 'text-gray-600'); navigator.geolocation.getCurrentPosition( (position) => { registrationCoords = { lat: position.coords.latitude, lng: position.coords.longitude }; geocoder.geocode({ 'location': registrationCoords }, (results, status) => { if (status === 'OK' && results[0]) { document.getElementById('sekolah-input').value = results[0].formatted_address; displayMessage('Lokasi semasa berjaya diperoleh.', 'text-green-600'); } else { displayMessage('Gagal menukar lokasi kepada alamat.', 'text-red-600'); } }); }, () => { displayMessage('Gagal mendapatkan lokasi. Sila pastikan anda memberi kebenaran.', 'text-red-600'); } ); }
