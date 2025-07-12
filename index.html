@@ -132,7 +132,15 @@
                     <label for="teacher-filter" class="text-xs font-medium text-gray-600">TAPIS GURU</label>
                     <select id="teacher-filter" class="w-full mt-1 p-2 border-gray-300 rounded-md text-sm"><option value="all">Semua Guru</option></select>
                 </div>
-                <div class="sm:col-span-2 flex items-end">
+                <div class="p-2 bg-gray-100 rounded-lg">
+                    <label for="wbf-filter" class="text-xs font-medium text-gray-600">TAPIS JENIS</label>
+                    <select id="wbf-filter" class="w-full mt-1 p-2 border-gray-300 rounded-md text-sm">
+                        <option value="all">Semua Jenis</option>
+                        <option value="false">Guru (Biasa)</option>
+                        <option value="true">AKP (WBF)</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
                     <button id="generate-report-btn" class="w-full h-full py-2 px-4 font-semibold text-white bg-purple-600 rounded-lg shadow-md hover:bg-purple-700 flex items-center justify-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                         Jana Laporan PDF
@@ -321,6 +329,25 @@
                 </tr>
             `;
         }
+        
+        // --- FUNGSI PENGURUSAN MODAL ---
+        function showReasonModal(config) {
+            reasonModalTitle.textContent = config.title;
+            reasonModalDescription.textContent = config.description;
+            reasonInput.value = '';
+            reasonInput.placeholder = config.placeholder || 'Taip sebab anda di sini...';
+            reasonModal.classList.remove('hidden');
+            
+            submitReasonBtn.onclick = () => {
+                const reason = reasonInput.value;
+                if (!reason) {
+                    alert('Sila masukkan sebab anda.');
+                    return;
+                }
+                config.submitCallback(reason);
+                reasonModal.classList.add('hidden');
+            };
+        }
 
         // --- FUNGSI INISIASI & UTAMA ---
         function initMaps() {
@@ -487,7 +514,7 @@
                 monthFilter.appendChild(option);
             });
         }
-        function getFilteredRecords() { const selectedMonth = monthFilter.value; const selectedStatus = statusFilter.value; const selectedTeacher = currentUser.isAdmin ? teacherFilter.value : 'all'; let filteredRecords = allUserRecords.filter(r => r && r['Masa Masuk'] && !isNaN(new Date(r['Masa Masuk']))); if (selectedStatus !== 'all') { filteredRecords = filteredRecords.filter(r => r.Status === selectedStatus); } if (selectedMonth !== 'all') { const [year, month] = selectedMonth.split('-'); filteredRecords = filteredRecords.filter(r => { const recordDate = new Date(r['Masa Masuk']); return recordDate.getFullYear() == year && recordDate.getMonth() == month; }); } if (currentUser.isAdmin && selectedTeacher !== 'all') { filteredRecords = filteredRecords.filter(r => r.Nama === selectedTeacher); } return filteredRecords; }
+        function getFilteredRecords() { const selectedMonth = monthFilter.value; const selectedStatus = statusFilter.value; const selectedTeacher = currentUser.isAdmin ? teacherFilter.value : 'all'; const selectedWBF = currentUser.isAdmin ? wbfFilter.value : 'all'; let filteredRecords = allUserRecords.filter(r => r && r['Masa Masuk'] && !isNaN(new Date(r['Masa Masuk']))); if (selectedStatus !== 'all') { filteredRecords = filteredRecords.filter(r => r.Status === selectedStatus); } if (selectedMonth !== 'all') { const [year, month] = selectedMonth.split('-'); filteredRecords = filteredRecords.filter(r => { const recordDate = new Date(r['Masa Masuk']); return recordDate.getFullYear() == year && recordDate.getMonth() == month; }); } if (currentUser.isAdmin && selectedTeacher !== 'all') { filteredRecords = filteredRecords.filter(r => r.Nama === selectedTeacher); } if (currentUser.isAdmin && selectedWBF !== 'all') { const isWBF = selectedWBF === 'true'; filteredRecords = filteredRecords.filter(r => r.WBF === isWBF); } return filteredRecords; }
         function applyFilters() { const filteredRecords = getFilteredRecords(); onTimeCountEl.textContent = filteredRecords.filter(r => r.Status === 'ON TIME').length; lateCountEl.textContent = filteredRecords.filter(r => r.Status === 'LEWAT').length; renderTable(filteredRecords); }
         function updateButtonStates() { const todayStr = new Date().toLocaleDateString('ms-MY'); const todayRecord = allUserRecords.find(r => r && r['Masa Masuk'] && !isNaN(new Date(r['Masa Masuk'])) && new Date(r['Masa Masuk']).toLocaleDateString('ms-MY') === todayStr); if (todayRecord) { clockInBtn.disabled = true; clockOutBtn.disabled = !!todayRecord['Masa Keluar']; } else { clockInBtn.disabled = false; clockOutBtn.disabled = true; } }
         function initAutocomplete() { const input = document.getElementById('sekolah-input'); const options = { componentRestrictions: { country: "my" }, fields: ["name", "formatted_address", "geometry"], types: ["establishment"] }; const autocomplete = new google.maps.places.Autocomplete(input, options); autocomplete.addListener('place_changed', () => { const place = autocomplete.getPlace(); if (place.geometry && place.geometry.location) { registrationCoords = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() }; } }); }
@@ -574,8 +601,8 @@
                 doc.setTextColor(100);
                 doc.text(`Bulan: ${monthText}`, 14, 30);
                 doc.text(`Status: ${statusText}`, 14, 36);
-                doc.text(`Guru: ${teacherText}`, 14, 42);
-                const tableColumn = ["Nama Guru", "Tarikh", "Masa Masuk", "Masa Keluar", "Status", "Catatan"];
+                doc.text(`Guru/AKP: ${teacherText}`, 14, 42);
+                const tableColumn = ["Nama", "Tarikh", "Masuk", "Keluar", "Status", "Catatan Lewat", "Sebab Keluar Awal"];
                 const tableRows = [];
                 recordsToPrint.forEach(record => {
                     const clockIn = record['Masa Masuk'] ? new Date(record['Masa Masuk']) : null;
@@ -586,7 +613,8 @@
                         clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
                         clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
                         record.Status || '-',
-                        record.Catatan || ''
+                        record.Catatan || '',
+                        record.Sebab || ''
                     ];
                     tableRows.push(recordData);
                 });
