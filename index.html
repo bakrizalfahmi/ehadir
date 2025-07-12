@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Log Masuk & Pendaftaran</title>
+    <!-- Memuatkan Tailwind CSS untuk penggayaan yang pantas dan moden -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Gaya tambahan untuk pengalaman pengguna yang lebih baik */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .form-container {
+            transition: all 0.5s ease-in-out;
+        }
+        .hidden-form {
+            opacity: 0;
+            transform: scale(0.9);
+            position: absolute;
+            pointer-events: none;
+        }
+        .visible-form {
+            opacity: 1;
+            transform: scale(1);
+            position: relative;
+            pointer-events: auto;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Gaya untuk map canvas */
+        #map {
+            height: 200px;
+            width: 100%;
+            background-color: #e5e7eb; /* Warna latar kelabu */
+            border-radius: 0.375rem; /* rounded-md */
+            margin-top: 0.5rem; /* mt-2 */
+        }
+    </style>
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
+        
+        <!-- Mesej Maklum Balas -->
+        <div id="message-box" class="hidden p-4 rounded-md text-sm"></div>
+
+        <!-- Borang Log Masuk -->
+        <div id="login-container" class="form-container visible-form">
+            <h2 class="text-2xl font-bold text-center text-gray-800">Log Masuk</h2>
+            <form id="login-form" class="mt-6 space-y-4">
+                <div>
+                    <label for="login-email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input id="login-email" name="email" type="email" required class="w-full px-3 py-2 mt-1 text-gray-700 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="login-password" class="block text-sm font-medium text-gray-700">Kata Laluan</label>
+                    <input id="login-password" name="password" type="password" required class="w-full px-3 py-2 mt-1 text-gray-700 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <span class="btn-text">Log Masuk</span>
+                        <div class="loader hidden"></div>
+                    </button>
+                </div>
+            </form>
+            <p class="mt-4 text-sm text-center text-gray-600">
+                Tiada akaun? <a href="#" id="show-register" class="font-medium text-blue-600 hover:underline">Daftar di sini</a>
+            </p>
+        </div>
+
+        <!-- Borang Pendaftaran -->
+        <div id="register-container" class="form-container hidden-form">
+            <h2 class="text-2xl font-bold text-center text-gray-800">Daftar Akaun Baru</h2>
+            <form id="register-form" class="mt-6 space-y-4">
+                <input-field label="Nama Penuh" id="reg-name" type="text"></input-field>
+                <input-field label="ID Pengguna" id="reg-userid" type="text"></input-field>
+                <input-field label="Email" id="reg-email" type="email"></input-field>
+                <input-field label="Kata Laluan" id="reg-password" type="password"></input-field>
+                
+                <!-- Medan Sekolah dengan Google Maps Autocomplete -->
+                <div>
+                    <label for="reg-school-search" class="block text-sm font-medium text-gray-700">Sekolah (Cari di Peta)</label>
+                    <input id="reg-school-search" type="text" placeholder="Taip nama sekolah anda di sini" required class="w-full px-3 py-2 mt-1 text-gray-700 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <!-- Input tersembunyi untuk menyimpan nama sekolah yang dipilih -->
+                    <input type="hidden" id="reg-school" name="school">
+                    <div id="map"></div>
+                </div>
+
+                <div>
+                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                        <span class="btn-text">Daftar</span>
+                        <div class="loader hidden"></div>
+                    </button>
+                </div>
+            </form>
+            <p class="mt-4 text-sm text-center text-gray-600">
+                Sudah ada akaun? <a href="#" id="show-login" class="font-medium text-blue-600 hover:underline">Log masuk di sini</a>
+            </p>
+        </div>
+        
+        <!-- Skrin Kejayaan Selepas Log Masuk -->
+        <div id="welcome-screen" class="hidden text-center">
+            <h2 class="text-2xl font-bold text-green-600">Log Masuk Berjaya!</h2>
+            <p id="welcome-message" class="mt-4 text-lg text-gray-700"></p>
+            <button id="logout-btn" class="mt-6 w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700">Log Keluar</button>
+        </div>
+
+    </div>
+
+    <script>
+        // Komponen Input Tersuai untuk mengurangkan ulangan kod HTML
+        class InputField extends HTMLElement {
+            connectedCallback() {
+                const label = this.getAttribute('label');
+                const id = this.getAttribute('id');
+                const type = this.getAttribute('type');
+                this.innerHTML = `
+                    <div>
+                        <label for="${id}" class="block text-sm font-medium text-gray-700">${label}</label>
+                        <input id="${id}" name="${id}" type="${type}" required class="w-full px-3 py-2 mt-1 text-gray-700 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                `;
+            }
+        }
+        customElements.define('input-field', InputField);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // URL Aplikasi Web Google Apps Script anda telah dimasukkan
+            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxE7ABoO09pJUiHDWUjJYO49BP5xLffZ7P6EtLuOvGezVwbP6CR4P8a6YGF5lESEquFmg/exec'; 
+
+            const loginContainer = document.getElementById('login-container');
+            const registerContainer = document.getElementById('register-container');
+            const welcomeScreen = document.getElementById('welcome-screen');
+            const showRegisterLink = document.getElementById('show-register');
+            const showLoginLink = document.getElementById('show-login');
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const messageBox = document.getElementById('message-box');
+            const logoutBtn = document.getElementById('logout-btn');
+
+            // Fungsi untuk menukar antara borang log masuk dan pendaftaran
+            const toggleForms = (showLogin) => {
+                if (showLogin) {
+                    loginContainer.classList.remove('hidden-form');
+                    loginContainer.classList.add('visible-form');
+                    registerContainer.classList.remove('visible-form');
+                    registerContainer.classList.add('hidden-form');
+                } else {
+                    registerContainer.classList.remove('hidden-form');
+                    registerContainer.classList.add('visible-form');
+                    loginContainer.classList.remove('visible-form');
+                    loginContainer.classList.add('hidden-form');
+                }
+                welcomeScreen.classList.add('hidden');
+                messageBox.classList.add('hidden');
+            };
+
+            showRegisterLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleForms(false);
+            });
+
+            showLoginLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                toggleForms(true);
+            });
+            
+            logoutBtn.addEventListener('click', () => {
+                toggleForms(true);
+            });
+
+            // Fungsi untuk menunjukkan mesej maklum balas
+            const showMessage = (message, isSuccess) => {
+                messageBox.textContent = message;
+                messageBox.className = `p-4 rounded-md text-sm ${isSuccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+                messageBox.classList.remove('hidden');
+            };
+
+            // Fungsi untuk menguruskan status butang (loading)
+            const handleButtonLoading = (form, isLoading) => {
+                const button = form.querySelector('button[type="submit"]');
+                const btnText = button.querySelector('.btn-text');
+                const loader = button.querySelector('.loader');
+
+                if (isLoading) {
+                    button.disabled = true;
+                    btnText.classList.add('hidden');
+                    loader.classList.remove('hidden');
+                } else {
+                    button.disabled = false;
+                    btnText.classList.remove('hidden');
+                    loader.classList.add('hidden');
+                }
+            };
+
+            // Mengendalikan penyerahan borang log masuk
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                handleButtonLoading(loginForm, true);
+
+                const formData = new FormData(loginForm);
+                const payload = {
+                    action: 'login',
+                    email: formData.get('email'),
+                    password: formData.get('password')
+                };
+
+                try {
+                    const response = await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(payload),
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        loginContainer.classList.add('hidden');
+                        registerContainer.classList.add('hidden');
+                        welcomeScreen.classList.remove('hidden');
+                        document.getElementById('welcome-message').textContent = `Selamat Datang, ${result.name}!`;
+                    } else {
+                        showMessage(result.message, false);
+                    }
+                } catch (error) {
+                    showMessage('Gagal berhubung dengan pelayan. Sila cuba lagi.', false);
+                } finally {
+                    handleButtonLoading(loginForm, false);
+                }
+            });
+
+            // Mengendalikan penyerahan borang pendaftaran
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                handleButtonLoading(registerForm, true);
+
+                const payload = {
+                    action: 'register',
+                    data: {
+                        name: document.getElementById('reg-name').value,
+                        userId: document.getElementById('reg-userid').value,
+                        email: document.getElementById('reg-email').value,
+                        password: document.getElementById('reg-password').value,
+                        school: document.getElementById('reg-school').value // Ambil nilai dari input tersembunyi
+                    }
+                };
+                
+                try {
+                    const response = await fetch(SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(payload),
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const result = await response.json();
+
+                    showMessage(result.message, result.success);
+                    if (result.success) {
+                        registerForm.reset();
+                        // Reset peta ke lokasi asal
+                        initMap();
+                        // Tunggu sekejap sebelum tunjuk borang log masuk
+                        setTimeout(() => toggleForms(true), 2000);
+                    }
+                } catch (error) {
+                    showMessage('Gagal berhubung dengan pelayan. Sila cuba lagi.', false);
+                } finally {
+                    handleButtonLoading(registerForm, false);
+                }
+            });
+        });
+
+        // =======================================================
+        // FUNGSI UNTUK GOOGLE MAPS
+        // =======================================================
+        let map;
+        let marker;
+
+        function initMap() {
+            // Lokasi awal peta (tengah Malaysia)
+            const initialLocation = { lat: 4.2105, lng: 101.9758 }; 
+
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: initialLocation,
+                zoom: 7,
+                mapTypeControl: false, // Sembunyikan pilihan jenis peta
+            });
+
+            // Cipta marker yang boleh diguna semula
+            marker = new google.maps.Marker({
+                map: map,
+                anchorPoint: new google.maps.Point(0, -29),
+            });
+
+            const searchInput = document.getElementById("reg-school-search");
+            const hiddenSchoolInput = document.getElementById("reg-school");
+            
+            // Cipta Autocomplete dan hubungkannya dengan input carian
+            const autocomplete = new google.maps.places.Autocomplete(searchInput, {
+                fields: ["name", "formatted_address", "geometry"],
+                types: ["establishment"] // Fokus carian pada bangunan/tempat
+            });
+
+            // Apabila pengguna memilih tempat dari senarai
+            autocomplete.addListener("place_changed", () => {
+                marker.setVisible(false);
+                const place = autocomplete.getPlace();
+
+                if (!place.geometry || !place.geometry.location) {
+                    // Pengguna menekan Enter tanpa memilih cadangan
+                    window.alert("Lokasi tidak ditemui: '" + place.name + "'");
+                    return;
+                }
+
+                // Simpan nama dan alamat penuh dalam input tersembunyi
+                hiddenSchoolInput.value = `${place.name}, ${place.formatted_address}`;
+
+                // Pusatkan peta pada lokasi yang dipilih
+                map.setCenter(place.geometry.location);
+                map.setZoom(17);
+
+                // Letakkan marker pada lokasi
+                marker.setPosition(place.geometry.location);
+                marker.setVisible(true);
+            });
+        }
+    </script>
+    
+    <!-- Kunci API anda telah dimasukkan di sini -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCFmD8knK4eRXGaWqXJ7zigxIK3qK9wEeg&libraries=places&callback=initMap" async defer></script>
+
+</body>
+</html>
