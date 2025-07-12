@@ -264,6 +264,7 @@
         const teacherActions = document.getElementById('teacher-actions');
         const adminActions = document.getElementById('admin-actions');
         const teacherFilter = document.getElementById('teacher-filter');
+        const wbfFilter = document.getElementById('wbf-filter');
         const attendanceTableHead = document.getElementById('attendance-table-head');
         const generateReportBtn = document.getElementById('generate-report-btn');
         const registerWBF = document.getElementById('register-wbf');
@@ -392,6 +393,7 @@
             monthFilter.addEventListener('change', applyFilters);
             statusFilter.addEventListener('change', applyFilters);
             teacherFilter.addEventListener('change', applyFilters);
+            wbfFilter.addEventListener('change', applyFilters);
             generateReportBtn.addEventListener('click', generatePDFReport);
             cancelReasonBtn.addEventListener('click', () => {
                 reasonModal.classList.add('hidden');
