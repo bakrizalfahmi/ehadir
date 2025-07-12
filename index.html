@@ -17,7 +17,7 @@
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-    <div class="w-full max-w-2xl p-6 md:p-8 space-y-6 bg-white rounded-xl shadow-lg relative overflow-hidden">
+    <div class="w-full max-w-4xl p-6 md:p-8 space-y-6 bg-white rounded-xl shadow-lg relative overflow-hidden">
         
         <!-- Paparan Log Masuk & Pendaftaran -->
         <div id="login-register-wrapper">
@@ -74,28 +74,33 @@
             </div>
         </div>
 
-        <!-- Paparan Dashboard Kehadiran -->
+        <!-- Paparan Dashboard (Kini untuk Guru & Pentadbir) -->
         <div id="dashboard-view" class="hidden">
+            <!-- Bahagian Atas: Tajuk, Masa & Butang Log Keluar -->
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                 <div>
-                    <h2 class="text-3xl font-bold text-gray-800">Papan Pemuka</h2>
+                    <h2 id="dashboard-title" class="text-3xl font-bold text-gray-800"></h2>
                     <p id="user-greeting" class="text-gray-600"></p>
                 </div>
                 <div class="text-right mt-4 md:mt-0">
                     <div id="date-time-display" class="font-semibold text-gray-700"></div>
                     <div class="flex gap-4 justify-end mt-1">
-                        <button id="show-update-profile-btn" class="text-sm text-blue-600 hover:underline">Kemaskini Profil</button>
+                        <button id="show-update-profile-btn" class="text-sm text-blue-600 hover:underline"></button>
                         <button id="logout-button" class="text-sm text-red-600 hover:underline">Log Keluar</button>
                     </div>
                 </div>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+            <!-- Bahagian Tindakan Guru (disembunyikan untuk pentadbir) -->
+            <div id="teacher-actions" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div class="space-y-4">
                     <button id="clock-in-btn" class="w-full py-4 text-lg font-bold text-white bg-green-600 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">CLOCK IN</button>
                     <button id="clock-out-btn" class="w-full py-4 text-lg font-bold text-white bg-red-600 rounded-lg shadow-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed">CLOCK OUT</button>
                 </div>
                 <div id="map-canvas" class="bg-gray-200"></div>
             </div>
+
+            <!-- Bahagian Statistik & Penapis -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div class="p-4 bg-blue-100 rounded-lg text-center">
                     <p class="text-sm text-blue-800 font-bold">TEPAT MASA</p>
@@ -107,29 +112,26 @@
                 </div>
                 <div class="p-2 bg-gray-100 rounded-lg">
                     <label for="month-filter" class="text-xs font-medium text-gray-600">TAPIS BULAN</label>
-                    <select id="month-filter" class="w-full mt-1 p-2 border-gray-300 rounded-md text-sm">
-                        <option value="all">Semua Bulan</option>
-                    </select>
+                    <select id="month-filter" class="w-full mt-1 p-2 border-gray-300 rounded-md text-sm"><option value="all">Semua Bulan</option></select>
                 </div>
                 <div class="p-2 bg-gray-100 rounded-lg">
                     <label for="status-filter" class="text-xs font-medium text-gray-600">TAPIS STATUS</label>
-                    <select id="status-filter" class="w-full mt-1 p-2 border-gray-300 rounded-md text-sm">
-                        <option value="all">Semua Status</option>
-                        <option value="ON TIME">Tepat Masa</option>
-                        <option value="LEWAT">Lewat</option>
-                    </select>
+                    <select id="status-filter" class="w-full mt-1 p-2 border-gray-300 rounded-md text-sm"><option value="all">Semua Status</option><option value="ON TIME">Tepat Masa</option><option value="LEWAT">Lewat</option></select>
                 </div>
             </div>
+            
+            <!-- Penapis Tambahan untuk Pentadbir -->
+            <div id="admin-filters" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                 <div class="p-2 bg-gray-100 rounded-lg">
+                    <label for="teacher-filter" class="text-xs font-medium text-gray-600">TAPIS GURU</label>
+                    <select id="teacher-filter" class="w-full mt-1 p-2 border-gray-300 rounded-md text-sm"><option value="all">Semua Guru</option></select>
+                </div>
+            </div>
+
+            <!-- Bahagian Jadual Rekod Kehadiran -->
             <div class="table-container">
                 <table class="min-w-full bg-white text-sm">
-                    <thead class="bg-gray-800 text-white sticky top-0">
-                        <tr>
-                            <th class="text-left py-2 px-3">Tarikh</th>
-                            <th class="text-left py-2 px-3">Masuk</th>
-                            <th class="text-left py-2 px-3">Keluar</th>
-                            <th class="text-left py-2 px-3">Status</th>
-                        </tr>
-                    </thead>
+                    <thead id="attendance-table-head" class="bg-gray-800 text-white sticky top-0"></thead>
                     <tbody id="attendance-table-body" class="divide-y divide-gray-200"></tbody>
                 </table>
             </div>
@@ -226,6 +228,11 @@
         const updateProfileModal = document.getElementById('update-profile-modal');
         const updateProfileForm = document.getElementById('update-profile-form');
         const cancelUpdateBtn = document.getElementById('cancel-update-btn');
+        const dashboardTitle = document.getElementById('dashboard-title');
+        const teacherActions = document.getElementById('teacher-actions');
+        const adminFilters = document.getElementById('admin-filters');
+        const teacherFilter = document.getElementById('teacher-filter');
+        const attendanceTableHead = document.getElementById('attendance-table-head');
 
         // --- FUNGSI PENGURUSAN PAPARAN (DIBAIKI) ---
         function showAuthUI(view = 'login') {
@@ -245,8 +252,47 @@
             
             userGreeting.textContent = `Selamat datang, ${currentUser.nama}!`;
             startClock();
+            
+            if (currentUser.isAdmin) {
+                setupAdminView();
+                fetchAndDisplayAttendance('admin');
+            } else {
+                setupTeacherView();
+                fetchAndDisplayAttendance(currentUser.email);
+            }
+        }
+
+        function setupAdminView() {
+            dashboardTitle.textContent = 'Papan Pemuka Pentadbir';
+            teacherActions.classList.add('hidden');
+            showUpdateProfileBtn.classList.add('hidden');
+            adminFilters.classList.remove('hidden');
+            attendanceTableHead.innerHTML = `
+                <tr>
+                    <th class="text-left py-2 px-3">Nama Guru</th>
+                    <th class="text-left py-2 px-3">Tarikh</th>
+                    <th class="text-left py-2 px-3">Masuk</th>
+                    <th class="text-left py-2 px-3">Keluar</th>
+                    <th class="text-left py-2 px-3">Status</th>
+                </tr>
+            `;
+        }
+
+        function setupTeacherView() {
+            dashboardTitle.textContent = 'Papan Pemuka';
+            teacherActions.classList.remove('hidden');
+            showUpdateProfileBtn.classList.remove('hidden');
+            showUpdateProfileBtn.textContent = 'Kemaskini Profil';
+            adminFilters.classList.add('hidden');
             displayUserMap();
-            fetchAndDisplayAttendance();
+            attendanceTableHead.innerHTML = `
+                <tr>
+                    <th class="text-left py-2 px-3">Tarikh</th>
+                    <th class="text-left py-2 px-3">Masuk</th>
+                    <th class="text-left py-2 px-3">Keluar</th>
+                    <th class="text-left py-2 px-3">Status</th>
+                </tr>
+            `;
         }
 
         // --- FUNGSI INISIASI & UTAMA ---
@@ -304,7 +350,9 @@
                 .then(response => {
                     if (response.status === 'success') {
                         currentUser = response.userData;
-                        currentUser.kataLaluan = passwordVal; 
+                        if (!currentUser.isAdmin) {
+                            currentUser.kataLaluan = passwordVal; 
+                        }
                         showDashboardUI();
                     } else {
                         displayMessage(response.message, 'text-red-600');
@@ -353,19 +401,19 @@
         // --- KOD LAIN-LAIN (TIDAK BERUBAH) ---
         function startClock() { if (clockInterval) clearInterval(clockInterval); const update = () => { const now = new Date(); const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' }; dateTimeDisplay.textContent = now.toLocaleDateString('ms-MY', options); }; update(); clockInterval = setInterval(update, 1000); }
         async function displayUserMap() { try { const coords = await getUserCoordinates(); if (!map) { map = new google.maps.Map(mapCanvas, { center: coords, zoom: 16, disableDefaultUI: true, }); } else { map.setCenter(coords); } if (!userMarker) { userMarker = new google.maps.Marker({ position: coords, map: map, title: "Lokasi Anda" }); } else { userMarker.setPosition(coords); } } catch (error) { mapCanvas.innerHTML = `<div class="flex items-center justify-center h-full text-red-500">${error.message}</div>`; } }
-        function fetchAndDisplayAttendance() { displayMessage('Memuatkan data kehadiran...', 'text-gray-600'); fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getAttendanceData', email: currentUser.email }) }).then(res => res.json()).then(response => { if (response.status === 'success') { allUserRecords = response.data; populateDashboard(); displayMessage('', ''); } else { displayMessage(response.message, 'text-red-600'); } }).catch(error => displayMessage('Gagal memuatkan data: ' + error, 'text-red-600')); }
-        function populateDashboard() { const onTimeCount = allUserRecords.filter(r => r.Status === 'ON TIME').length; const lateCount = allUserRecords.filter(r => r.Status === 'LEWAT').length; onTimeCountEl.textContent = onTimeCount; lateCountEl.textContent = lateCount; populateMonthFilter(); updateButtonStates(); renderTable(allUserRecords); }
-        function renderTable(records) { attendanceTableBody.innerHTML = ''; if (records.length === 0) { attendanceTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-4 text-gray-500">Tiada rekod ditemui.</td></tr>`; return; } records.sort((a, b) => new Date(b['Masa Masuk']) - new Date(a['Masa Masuk'])); records.forEach(record => { const tr = document.createElement('tr'); tr.className = 'hover:bg-gray-50'; const clockIn = record['Masa Masuk'] ? new Date(record['Masa Masuk']) : null; const clockOut = record['Masa Keluar'] ? new Date(record['Masa Keluar']) : null; tr.innerHTML = ` <td class="py-2 px-3">${clockIn ? clockIn.toLocaleDateString('ms-MY') : '-'}</td> <td class="py-2 px-3">${clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3">${clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3"> <span class="px-2 py-1 text-xs font-semibold rounded-full ${record.Status === 'ON TIME' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}"> ${record.Status || '-'} </span> </td> `; attendanceTableBody.appendChild(tr); }); }
-        monthFilter.addEventListener('change', applyFilters); statusFilter.addEventListener('change', applyFilters);
-        function populateMonthFilter() { const months = [...new Set(allUserRecords.map(r => new Date(r['Masa Masuk']).toLocaleString('ms-MY', { month: 'long', year: 'numeric' })))]; monthFilter.innerHTML = '<option value="all">Semua Bulan</option>'; months.forEach(month => { const option = document.createElement('option'); const date = new Date(allUserRecords.find(r => new Date(r['Masa Masuk']).toLocaleString('ms-MY', { month: 'long', year: 'numeric' }) === month)['Masa Masuk']); option.value = `${date.getFullYear()}-${date.getMonth()}`; option.textContent = month; monthFilter.appendChild(option); }); }
-        function applyFilters() { const selectedMonth = monthFilter.value; const selectedStatus = statusFilter.value; let filteredRecords = allUserRecords; if (selectedStatus !== 'all') { filteredRecords = filteredRecords.filter(r => r.Status === selectedStatus); } if (selectedMonth !== 'all') { const [year, month] = selectedMonth.split('-'); filteredRecords = filteredRecords.filter(r => { const recordDate = new Date(r['Masa Masuk']); return recordDate.getFullYear() == year && recordDate.getMonth() == month; }); } renderTable(filteredRecords); }
+        function fetchAndDisplayAttendance(userIdentifier) { displayMessage('Memuatkan data kehadiran...', 'text-gray-600'); fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getAttendanceData', email: userIdentifier }) }).then(res => res.json()).then(response => { if (response.status === 'success') { allUserRecords = response.data; populateDashboard(); displayMessage('', ''); } else { displayMessage(response.message, 'text-red-600'); } }).catch(error => displayMessage('Gagal memuatkan data: ' + error, 'text-red-600')); }
+        function populateDashboard() { applyFilters(); populateMonthFilter(); if (currentUser.isAdmin) { populateTeacherFilter(); } else { updateButtonStates(); } }
+        function renderTable(records) { attendanceTableBody.innerHTML = ''; if (records.length === 0) { const colspan = currentUser.isAdmin ? 5 : 4; attendanceTableBody.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 text-gray-500">Tiada rekod ditemui.</td></tr>`; return; } records.sort((a, b) => new Date(b['Masa Masuk']) - new Date(a['Masa Masuk'])); records.forEach(record => { const tr = document.createElement('tr'); tr.className = 'hover:bg-gray-50'; const clockIn = record['Masa Masuk'] ? new Date(record['Masa Masuk']) : null; const clockOut = record['Masa Keluar'] ? new Date(record['Masa Keluar']) : null; const adminNameCol = currentUser.isAdmin ? `<td class="py-2 px-3">${record.Nama}</td>` : ''; tr.innerHTML = ` ${adminNameCol} <td class="py-2 px-3">${clockIn ? clockIn.toLocaleDateString('ms-MY') : '-'}</td> <td class="py-2 px-3">${clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3">${clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3"> <span class="px-2 py-1 text-xs font-semibold rounded-full ${record.Status === 'ON TIME' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}"> ${record.Status || '-'} </span> </td> `; attendanceTableBody.appendChild(tr); }); }
+        monthFilter.addEventListener('change', applyFilters); statusFilter.addEventListener('change', applyFilters); teacherFilter.addEventListener('change', applyFilters);
+        function populateTeacherFilter() { const teachers = [...new Set(allUserRecords.map(r => r.Nama))].sort(); teacherFilter.innerHTML = '<option value="all">Semua Guru</option>'; teachers.forEach(teacher => { const option = document.createElement('option'); option.value = teacher; option.textContent = teacher; teacherFilter.appendChild(option); }); }
+        function applyFilters() { const selectedMonth = monthFilter.value; const selectedStatus = statusFilter.value; const selectedTeacher = currentUser.isAdmin ? teacherFilter.value : 'all'; let filteredRecords = allUserRecords; if (selectedStatus !== 'all') { filteredRecords = filteredRecords.filter(r => r.Status === selectedStatus); } if (selectedMonth !== 'all') { const [year, month] = selectedMonth.split('-'); filteredRecords = filteredRecords.filter(r => { const recordDate = new Date(r['Masa Masuk']); return recordDate.getFullYear() == year && recordDate.getMonth() == month; }); } if (currentUser.isAdmin && selectedTeacher !== 'all') { filteredRecords = filteredRecords.filter(r => r.Nama === selectedTeacher); } onTimeCountEl.textContent = filteredRecords.filter(r => r.Status === 'ON TIME').length; lateCountEl.textContent = filteredRecords.filter(r => r.Status === 'LEWAT').length; renderTable(filteredRecords); }
         function updateButtonStates() { const todayStr = new Date().toLocaleDateString('ms-MY'); const todayRecord = allUserRecords.find(r => new Date(r['Masa Masuk']).toLocaleDateString('ms-MY') === todayStr); if (todayRecord) { clockInBtn.disabled = true; clockOutBtn.disabled = !!todayRecord['Masa Keluar']; } else { clockInBtn.disabled = false; clockOutBtn.disabled = true; } }
         function initAutocomplete() { const input = document.getElementById('sekolah-input'); const options = { componentRestrictions: { country: "my" }, fields: ["name", "formatted_address", "geometry"], types: ["establishment"] }; const autocomplete = new google.maps.places.Autocomplete(input, options); autocomplete.addListener('place_changed', () => { const place = autocomplete.getPlace(); if (place.geometry && place.geometry.location) { registrationCoords = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() }; } }); }
         async function handleRegister(e) { e.preventDefault(); displayMessage('Mengesahkan lokasi...', 'text-gray-600'); try { if (!registrationCoords) { const address = document.getElementById('sekolah-input').value; if (!address) { displayMessage('Sila masukkan nama sekolah atau guna lokasi semasa.', 'text-red-600'); return; } registrationCoords = await getSchoolCoordinates(address); } const userData = { nama: document.getElementById('register-nama').value, idPengguna: document.getElementById('register-id').value, email: document.getElementById('register-email').value, kataLaluan: document.getElementById('register-password').value, sekolah: document.getElementById('sekolah-input').value, lat: registrationCoords.lat, lng: registrationCoords.lng }; displayMessage('Mendaftar...', 'text-gray-600'); const data = { action: 'registerUser', data: userData }; fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) }).then(res => res.json()).then(response => { displayMessage(response.message, response.status === 'success' ? 'text-green-600' : 'text-red-600'); if (response.status === 'success') { registerForm.reset(); registrationCoords = null; setTimeout(() => showAuthUI('login'), 2000); } }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600')); } catch (error) { displayMessage('Gagal mengesahkan alamat sekolah. Pastikan nama adalah betul. ' + error.message, 'text-red-600'); } }
         function handleGetCurrentLocation() { if (!navigator.geolocation) { displayMessage('Geolocation tidak disokong oleh pelayar ini.', 'text-red-600'); return; } displayMessage('Mendapatkan lokasi semasa...', 'text-gray-600'); navigator.geolocation.getCurrentPosition( (position) => { registrationCoords = { lat: position.coords.latitude, lng: position.coords.longitude }; geocoder.geocode({ 'location': registrationCoords }, (results, status) => { if (status === 'OK' && results[0]) { document.getElementById('sekolah-input').value = results[0].formatted_address; displayMessage('Lokasi semasa berjaya diperoleh.', 'text-green-600'); } else { displayMessage('Gagal menukar lokasi kepada alamat.', 'text-red-600'); } }); }, () => { displayMessage('Gagal mendapatkan lokasi. Sila pastikan anda memberi kebenaran.', 'text-red-600'); } ); }
         clockInBtn.addEventListener('click', () => handleAttendance('clockIn')); clockOutBtn.addEventListener('click', () => handleAttendance('clockOut'));
         async function handleAttendance(type) { displayMessage('Mendapatkan lokasi anda...', 'text-gray-600'); try { if (!currentUser.lat || !currentUser.lng) { throw new Error("Data lokasi sekolah tidak ditemui pada akaun anda."); } const schoolCoords = { lat: currentUser.lat, lng: currentUser.lng }; const userCoords = await getUserCoordinates(); const distance = getDistance(userCoords, schoolCoords); if (distance > 50) { displayMessage(`Anda berada ${distance.toFixed(0)}m dari sekolah. Radius dibenarkan ialah 50m.`, 'text-red-600'); return; } displayMessage('Lokasi disahkan. Merekod kehadiran...', 'text-green-600'); const now = new Date(); const timeString = now.toISOString(); if (type === 'clockIn') { const clockInTime = now.getHours() * 60 + now.getMinutes(); const limitTime = 7 * 60 + 30; if (clockInTime > limitTime) { lateReasonModal.classList.remove('hidden'); submitLateBtn.onclick = () => { const reason = lateReasonInput.value; if (!reason) { alert('Sila masukkan sebab kelewatan.'); return; } recordAttendance('clockIn', timeString, userCoords, 'LEWAT', reason); lateReasonModal.classList.add('hidden'); lateReasonInput.value = ''; }; cancelLateBtn.onclick = () => { lateReasonModal.classList.add('hidden'); displayMessage('Operasi dibatalkan.', 'text-gray-600'); }; } else { recordAttendance('clockIn', timeString, userCoords, 'ON TIME', ''); } } else { recordAttendance('clockOut', timeString, userCoords); } } catch (error) { displayMessage(`Ralat: ${error.message}`, 'text-red-600'); } }
-        function recordAttendance(type, time, coords, status = '', notes = '') { displayMessage('Menghantar data ke pelayan...', 'text-gray-600'); const data = { action: 'recordAttendance', data: { email: currentUser.email, type: type, time: time, status: status, notes: notes, lat: coords.lat, lng: coords.lng }}; fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) }).then(res => res.json()).then(response => { displayMessage(response.message, response.status === 'success' ? 'text-green-600' : 'text-red-600'); if(response.status === 'success'){ fetchAndDisplayAttendance(); } }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600')); }
+        function recordAttendance(type, time, coords, status = '', notes = '') { displayMessage('Menghantar data ke pelayan...', 'text-gray-600'); const data = { action: 'recordAttendance', data: { email: currentUser.email, type: type, time: time, status: status, notes: notes, lat: coords.lat, lng: coords.lng }}; fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) }).then(res => res.json()).then(response => { displayMessage(response.message, response.status === 'success' ? 'text-green-600' : 'text-red-600'); if(response.status === 'success'){ fetchAndDisplayAttendance(currentUser.isAdmin ? 'admin' : currentUser.email); } }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600')); }
         function getSchoolCoordinates(address) { return new Promise((resolve, reject) => { geocoder.geocode({ 'address': address, 'componentRestrictions': {'country': 'MY'} }, (results, status) => { if (status === 'OK' && results[0]) { resolve({ lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() }); } else { reject(new Error('Alamat tidak sah.')); } }); }); }
         function getUserCoordinates() { return new Promise((resolve, reject) => { if (!navigator.geolocation) { reject(new Error('Geolocation tidak disokong.')); } navigator.geolocation.getCurrentPosition( (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }), () => reject(new Error('Gagal dapatkan lokasi. Beri kebenaran.')) ); }); }
         function getDistance(coords1, coords2) { const R = 6371e3; const φ1 = coords1.lat * Math.PI / 180; const φ2 = coords2.lat * Math.PI / 180; const Δφ = (coords2.lat - coords1.lat) * Math.PI / 180; const Δλ = (coords2.lng - coords1.lng) * Math.PI / 180; const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2); const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); return R * c; }
