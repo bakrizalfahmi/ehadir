@@ -51,7 +51,6 @@
                 <input type="email" id="register-email" placeholder="Alamat E-mel" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <input type="password" id="register-password" placeholder="Kata Laluan" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 
-                <!-- DIKEMAS KINI: Medan Sekolah dengan Butang Lokasi Semasa -->
                 <div class="relative">
                     <input type="text" id="sekolah-input" placeholder="Taip Nama Sekolah atau guna lokasi semasa" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10">
                     <button type="button" id="get-current-location-btn" title="Guna Lokasi Semasa" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-blue-600 focus:outline-none">
@@ -105,6 +104,7 @@
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwpCBJX2hZxnvadGWRQUxoCQk4bviWQXHrHLlzjyZT1uaiBfc1SQKFLqPF7dXbMs4-S_A/exec";
         let currentUser = null;
         let geocoder;
+        let registrationCoords = null; // DIKEMAS KINI: Untuk menyimpan koordinat semasa pendaftaran
 
         // --- PEMILIH ELEMEN DOM ---
         const loginView = document.getElementById('login-view');
@@ -122,7 +122,7 @@
         const lateReasonInput = document.getElementById('late-reason-input');
         const cancelLateBtn = document.getElementById('cancel-late-btn');
         const submitLateBtn = document.getElementById('submit-late-btn');
-        const getCurrentLocationBtn = document.getElementById('get-current-location-btn'); // BARU
+        const getCurrentLocationBtn = document.getElementById('get-current-location-btn');
 
         // --- FUNGSI INISIASI ---
         function initMaps() {
@@ -132,12 +132,22 @@
 
         function initAutocomplete() {
             const input = document.getElementById('sekolah-input');
-            const options = { componentRestrictions: { country: "my" }, fields: ["name", "formatted_address"], types: ["establishment"] };
-            new google.maps.places.Autocomplete(input, options);
+            const options = { componentRestrictions: { country: "my" }, fields: ["name", "formatted_address", "geometry"], types: ["establishment"] };
+            const autocomplete = new google.maps.places.Autocomplete(input, options);
+            // DIKEMAS KINI: Apabila pengguna memilih dari senarai, simpan koordinatnya
+            autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+                if (place.geometry && place.geometry.location) {
+                    registrationCoords = {
+                        lat: place.geometry.location.lat(),
+                        lng: place.geometry.location.lng()
+                    };
+                }
+            });
         }
 
         // --- LOGIK TUKAR PAPARAN ---
-        showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); toggleViews('register'); });
+        showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); registrationCoords = null; toggleViews('register'); });
         showLoginLink.addEventListener('click', (e) => { e.preventDefault(); toggleViews('login'); });
         logoutButton.addEventListener('click', () => {
             currentUser = null;
@@ -150,7 +160,6 @@
             registerView.classList.add('hidden');
             dashboardView.classList.add('hidden');
             messageBox.innerHTML = '';
-
             if (viewName === 'login') loginView.classList.remove('hidden');
             if (viewName === 'register') registerView.classList.remove('hidden');
             if (viewName === 'dashboard') dashboardView.classList.remove('hidden');
@@ -159,7 +168,7 @@
         // --- PENGENDALI BORANG & BUTANG ---
         loginForm.addEventListener('submit', handleLogin);
         registerForm.addEventListener('submit', handleRegister);
-        getCurrentLocationBtn.addEventListener('click', handleGetCurrentLocation); // BARU
+        getCurrentLocationBtn.addEventListener('click', handleGetCurrentLocation);
 
         function handleLogin(e) {
             e.preventDefault();
@@ -176,68 +185,81 @@
                     }
                 }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600'));
         }
-        function handleRegister(e) {
+        
+        async function handleRegister(e) { // DIKEMAS KINI: Fungsi dijadikan async
              e.preventDefault();
-            const userData = {
-                nama: document.getElementById('register-nama').value,
-                idPengguna: document.getElementById('register-id').value,
-                email: document.getElementById('register-email').value,
-                kataLaluan: document.getElementById('register-password').value,
-                sekolah: document.getElementById('sekolah-input').value
-            };
-            displayMessage('Mendaftar...', 'text-gray-600');
-            const data = { action: 'registerUser', data: userData };
-            fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) })
-            .then(res => res.json())
-            .then(response => {
-                displayMessage(response.message, response.status === 'success' ? 'text-green-600' : 'text-red-600');
-                if (response.status === 'success') {
-                    registerForm.reset();
-                    setTimeout(() => toggleViews('login'), 2000);
+             displayMessage('Mengesahkan lokasi...', 'text-gray-600');
+
+            // DIKEMAS KINI: Dapatkan koordinat sebelum menghantar
+            try {
+                // Jika pengguna tidak guna butang lokasi atau pilih dari senarai, dapatkan koordinat dari teks
+                if (!registrationCoords) {
+                    const address = document.getElementById('sekolah-input').value;
+                    if (!address) {
+                        displayMessage('Sila masukkan nama sekolah atau guna lokasi semasa.', 'text-red-600');
+                        return;
+                    }
+                    registrationCoords = await getSchoolCoordinates(address);
                 }
-            }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600'));
+
+                const userData = {
+                    nama: document.getElementById('register-nama').value,
+                    idPengguna: document.getElementById('register-id').value,
+                    email: document.getElementById('register-email').value,
+                    kataLaluan: document.getElementById('register-password').value,
+                    sekolah: document.getElementById('sekolah-input').value,
+                    lat: registrationCoords.lat, // Hantar lat
+                    lng: registrationCoords.lng  // Hantar lng
+                };
+
+                displayMessage('Mendaftar...', 'text-gray-600');
+                const data = { action: 'registerUser', data: userData };
+                fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) })
+                .then(res => res.json())
+                .then(response => {
+                    displayMessage(response.message, response.status === 'success' ? 'text-green-600' : 'text-red-600');
+                    if (response.status === 'success') {
+                        registerForm.reset();
+                        registrationCoords = null;
+                        setTimeout(() => toggleViews('login'), 2000);
+                    }
+                }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600'));
+
+            } catch (error) {
+                displayMessage('Gagal mengesahkan alamat sekolah. Pastikan nama adalah betul. ' + error.message, 'text-red-600');
+            }
         }
         
-        // FUNGSI BARU: Mendapatkan Lokasi Semasa
         function handleGetCurrentLocation() {
             if (!navigator.geolocation) {
                 displayMessage('Geolocation tidak disokong oleh pelayar ini.', 'text-red-600');
                 return;
             }
-
             displayMessage('Mendapatkan lokasi semasa...', 'text-gray-600');
-
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    const userLocation = {
+                    // DIKEMAS KINI: Simpan koordinat dan kemudian dapatkan alamat
+                    registrationCoords = {
                         lat: position.coords.latitude,
                         lng: position.coords.longitude
                     };
-                    // Tukar koordinat kepada alamat (Reverse Geocoding)
-                    geocoder.geocode({ 'location': userLocation }, (results, status) => {
-                        if (status === 'OK') {
-                            if (results[0]) {
-                                document.getElementById('sekolah-input').value = results[0].formatted_address;
-                                displayMessage('Lokasi semasa berjaya diperoleh.', 'text-green-600');
-                            } else {
-                                displayMessage('Tiada hasil ditemui.', 'text-red-600');
-                            }
+                    geocoder.geocode({ 'location': registrationCoords }, (results, status) => {
+                        if (status === 'OK' && results[0]) {
+                            document.getElementById('sekolah-input').value = results[0].formatted_address;
+                            displayMessage('Lokasi semasa berjaya diperoleh.', 'text-green-600');
                         } else {
-                            displayMessage('Geocode gagal: ' + status, 'text-red-600');
+                            displayMessage('Gagal menukar lokasi kepada alamat.', 'text-red-600');
                         }
                     });
                 },
-                () => {
-                    displayMessage('Gagal mendapatkan lokasi. Sila pastikan anda memberi kebenaran.', 'text-red-600');
-                }
+                () => { displayMessage('Gagal mendapatkan lokasi. Sila pastikan anda memberi kebenaran.', 'text-red-600'); }
             );
         }
 
         // --- LOGIK DASHBOARD & KEHADIRAN ---
         function showDashboard() {
             toggleViews('dashboard');
-            const userInfoDiv = document.getElementById('user-info');
-            userInfoDiv.innerHTML = `
+            document.getElementById('user-info').innerHTML = `
                 <p><strong>Nama:</strong> ${currentUser.nama}</p>
                 <p><strong>E-mel:</strong> ${currentUser.email}</p>
                 <p><strong>Sekolah:</strong> ${currentUser.sekolah}</p>
@@ -250,7 +272,11 @@
         async function handleAttendance(type) {
             displayMessage('Mendapatkan lokasi anda...', 'text-gray-600');
             try {
-                const schoolCoords = await getSchoolCoordinates(currentUser.sekolah);
+                // DIKEMAS KINI: Guna koordinat yang disimpan secara terus
+                if (!currentUser.lat || !currentUser.lng) {
+                    throw new Error("Data lokasi sekolah tidak ditemui pada akaun anda. Sila hubungi pentadbir.");
+                }
+                const schoolCoords = { lat: currentUser.lat, lng: currentUser.lng };
                 const userCoords = await getUserCoordinates();
                 
                 const distance = getDistance(userCoords, schoolCoords);
@@ -290,22 +316,13 @@
                 }
 
             } catch (error) {
-                displayMessage(`Ralat lokasi: ${error.message}`, 'text-red-600');
+                displayMessage(`Ralat: ${error.message}`, 'text-red-600');
             }
         }
         
         function recordAttendance(type, time, status = '', notes = '') {
             displayMessage('Menghantar data ke pelayan...', 'text-gray-600');
-            const data = {
-                action: 'recordAttendance',
-                data: {
-                    email: currentUser.email,
-                    type: type,
-                    time: time,
-                    status: status,
-                    notes: notes
-                }
-            };
+            const data = { action: 'recordAttendance', data: { email: currentUser.email, type: type, time: time, status: status, notes: notes }};
             fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) })
                 .then(res => res.json())
                 .then(response => {
@@ -321,13 +338,13 @@
         function getSchoolCoordinates(address) {
             return new Promise((resolve, reject) => {
                 geocoder.geocode({ 'address': address, 'componentRestrictions': {'country': 'MY'} }, (results, status) => {
-                    if (status === 'OK') {
+                    if (status === 'OK' && results[0]) {
                         resolve({
                             lat: results[0].geometry.location.lat(),
                             lng: results[0].geometry.location.lng()
                         });
                     } else {
-                        reject(new Error('Gagal mendapatkan koordinat sekolah: ' + status));
+                        reject(new Error('Alamat tidak sah.'));
                     }
                 });
             });
@@ -336,11 +353,11 @@
         function getUserCoordinates() {
             return new Promise((resolve, reject) => {
                 if (!navigator.geolocation) {
-                    reject(new Error('Geolocation tidak disokong oleh pelayar ini.'));
+                    reject(new Error('Geolocation tidak disokong.'));
                 }
                 navigator.geolocation.getCurrentPosition(
                     (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
-                    () => reject(new Error('Gagal mendapatkan lokasi anda. Pastikan anda memberi kebenaran.'))
+                    () => reject(new Error('Gagal dapatkan lokasi. Beri kebenaran.'))
                 );
             });
         }
@@ -351,12 +368,8 @@
             const φ2 = coords2.lat * Math.PI / 180;
             const Δφ = (coords2.lat - coords1.lat) * Math.PI / 180;
             const Δλ = (coords2.lng - coords1.lng) * Math.PI / 180;
-
-            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-                      Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
             return R * c;
         }
 
