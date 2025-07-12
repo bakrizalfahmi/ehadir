@@ -52,7 +52,6 @@
                 <p class="mt-6 text-sm text-center text-gray-600">Tiada akaun? <a href="#" id="show-register" class="font-medium text-blue-600 hover:underline">Daftar di sini</a></p>
             </div>
             
-            <!-- BAHAGIAN DIPERBAIKI: Borang Pendaftaran kini lengkap -->
             <div id="register-view" class="form-container hidden">
                  <h2 class="text-3xl font-bold text-center text-gray-800">Daftar Akaun Baru</h2>
                 <p class="text-center text-gray-500">Isi borang di bawah untuk mendaftar.</p>
@@ -228,20 +227,33 @@
         const updateProfileForm = document.getElementById('update-profile-form');
         const cancelUpdateBtn = document.getElementById('cancel-update-btn');
 
+        // --- FUNGSI PENGURUSAN PAPARAN (DIBAIKI) ---
+        function showAuthUI(view = 'login') {
+            dashboardView.classList.add('hidden');
+            loginRegisterWrapper.classList.remove('hidden');
+
+            document.getElementById('login-view').classList.toggle('hidden', view !== 'login');
+            document.getElementById('register-view').classList.toggle('hidden', view !== 'register');
+            
+            if (clockInterval) clearInterval(clockInterval);
+            messageBox.innerHTML = '';
+        }
+
+        function showDashboardUI() {
+            loginRegisterWrapper.classList.add('hidden');
+            dashboardView.classList.remove('hidden');
+            
+            userGreeting.textContent = `Selamat datang, ${currentUser.nama}!`;
+            startClock();
+            displayUserMap();
+            fetchAndDisplayAttendance();
+        }
+
         // --- FUNGSI INISIASI & UTAMA ---
         function initMaps() {
             geocoder = new google.maps.Geocoder();
             initAutocomplete();
             checkRememberMe();
-        }
-
-        function showDashboard() {
-            loginRegisterWrapper.classList.add('hidden');
-            dashboardView.classList.remove('hidden');
-            userGreeting.textContent = `Selamat datang, ${currentUser.nama}!`;
-            startClock();
-            displayUserMap();
-            fetchAndDisplayAttendance();
         }
         
         // --- LOGIK "REMEMBER ME" & VISIBILITY KATA LALUAN ---
@@ -268,6 +280,13 @@
         showUpdateProfileBtn.addEventListener('click', showUpdateProfileModal);
         cancelUpdateBtn.addEventListener('click', () => updateProfileModal.classList.add('hidden'));
         updateProfileForm.addEventListener('submit', handleUpdateProfile);
+        showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); registrationCoords = null; showAuthUI('register'); });
+        showLoginLink.addEventListener('click', (e) => { e.preventDefault(); showAuthUI('login'); });
+        logoutButton.addEventListener('click', () => {
+            currentUser = null;
+            showAuthUI('login');
+            displayMessage('Anda telah berjaya log keluar.', 'text-green-600');
+        });
 
         function handleLogin(e) {
             e.preventDefault();
@@ -286,7 +305,7 @@
                     if (response.status === 'success') {
                         currentUser = response.userData;
                         currentUser.kataLaluan = passwordVal; 
-                        showDashboard();
+                        showDashboardUI();
                     } else {
                         displayMessage(response.message, 'text-red-600');
                     }
@@ -341,10 +360,8 @@
         function populateMonthFilter() { const months = [...new Set(allUserRecords.map(r => new Date(r['Masa Masuk']).toLocaleString('ms-MY', { month: 'long', year: 'numeric' })))]; monthFilter.innerHTML = '<option value="all">Semua Bulan</option>'; months.forEach(month => { const option = document.createElement('option'); const date = new Date(allUserRecords.find(r => new Date(r['Masa Masuk']).toLocaleString('ms-MY', { month: 'long', year: 'numeric' }) === month)['Masa Masuk']); option.value = `${date.getFullYear()}-${date.getMonth()}`; option.textContent = month; monthFilter.appendChild(option); }); }
         function applyFilters() { const selectedMonth = monthFilter.value; const selectedStatus = statusFilter.value; let filteredRecords = allUserRecords; if (selectedStatus !== 'all') { filteredRecords = filteredRecords.filter(r => r.Status === selectedStatus); } if (selectedMonth !== 'all') { const [year, month] = selectedMonth.split('-'); filteredRecords = filteredRecords.filter(r => { const recordDate = new Date(r['Masa Masuk']); return recordDate.getFullYear() == year && recordDate.getMonth() == month; }); } renderTable(filteredRecords); }
         function updateButtonStates() { const todayStr = new Date().toLocaleDateString('ms-MY'); const todayRecord = allUserRecords.find(r => new Date(r['Masa Masuk']).toLocaleDateString('ms-MY') === todayStr); if (todayRecord) { clockInBtn.disabled = true; clockOutBtn.disabled = !!todayRecord['Masa Keluar']; } else { clockInBtn.disabled = false; clockOutBtn.disabled = true; } }
-        showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); registrationCoords = null; toggleViews('register'); }); showLoginLink.addEventListener('click', (e) => { e.preventDefault(); toggleViews('login'); }); logoutButton.addEventListener('click', () => { currentUser = null; if(clockInterval) clearInterval(clockInterval); toggleViews('login'); displayMessage('Anda telah berjaya log keluar.', 'text-green-600'); });
-        function toggleViews(viewName) { loginRegisterWrapper.style.display = 'block'; dashboardView.classList.add('hidden'); if (viewName === 'dashboard') { loginRegisterWrapper.style.display = 'none'; dashboardView.classList.remove('hidden'); } else { const loginView = document.getElementById('login-view'); const registerView = document.getElementById('register-view'); loginView.classList.toggle('hidden', viewName !== 'login'); registerView.classList.toggle('hidden', viewName !== 'register'); } messageBox.innerHTML = ''; }
         function initAutocomplete() { const input = document.getElementById('sekolah-input'); const options = { componentRestrictions: { country: "my" }, fields: ["name", "formatted_address", "geometry"], types: ["establishment"] }; const autocomplete = new google.maps.places.Autocomplete(input, options); autocomplete.addListener('place_changed', () => { const place = autocomplete.getPlace(); if (place.geometry && place.geometry.location) { registrationCoords = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() }; } }); }
-        async function handleRegister(e) { e.preventDefault(); displayMessage('Mengesahkan lokasi...', 'text-gray-600'); try { if (!registrationCoords) { const address = document.getElementById('sekolah-input').value; if (!address) { displayMessage('Sila masukkan nama sekolah atau guna lokasi semasa.', 'text-red-600'); return; } registrationCoords = await getSchoolCoordinates(address); } const userData = { nama: document.getElementById('register-nama').value, idPengguna: document.getElementById('register-id').value, email: document.getElementById('register-email').value, kataLaluan: document.getElementById('register-password').value, sekolah: document.getElementById('sekolah-input').value, lat: registrationCoords.lat, lng: registrationCoords.lng }; displayMessage('Mendaftar...', 'text-gray-600'); const data = { action: 'registerUser', data: userData }; fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) }).then(res => res.json()).then(response => { displayMessage(response.message, response.status === 'success' ? 'text-green-600' : 'text-red-600'); if (response.status === 'success') { registerForm.reset(); registrationCoords = null; setTimeout(() => toggleViews('login'), 2000); } }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600')); } catch (error) { displayMessage('Gagal mengesahkan alamat sekolah. Pastikan nama adalah betul. ' + error.message, 'text-red-600'); } }
+        async function handleRegister(e) { e.preventDefault(); displayMessage('Mengesahkan lokasi...', 'text-gray-600'); try { if (!registrationCoords) { const address = document.getElementById('sekolah-input').value; if (!address) { displayMessage('Sila masukkan nama sekolah atau guna lokasi semasa.', 'text-red-600'); return; } registrationCoords = await getSchoolCoordinates(address); } const userData = { nama: document.getElementById('register-nama').value, idPengguna: document.getElementById('register-id').value, email: document.getElementById('register-email').value, kataLaluan: document.getElementById('register-password').value, sekolah: document.getElementById('sekolah-input').value, lat: registrationCoords.lat, lng: registrationCoords.lng }; displayMessage('Mendaftar...', 'text-gray-600'); const data = { action: 'registerUser', data: userData }; fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) }).then(res => res.json()).then(response => { displayMessage(response.message, response.status === 'success' ? 'text-green-600' : 'text-red-600'); if (response.status === 'success') { registerForm.reset(); registrationCoords = null; setTimeout(() => showAuthUI('login'), 2000); } }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600')); } catch (error) { displayMessage('Gagal mengesahkan alamat sekolah. Pastikan nama adalah betul. ' + error.message, 'text-red-600'); } }
         function handleGetCurrentLocation() { if (!navigator.geolocation) { displayMessage('Geolocation tidak disokong oleh pelayar ini.', 'text-red-600'); return; } displayMessage('Mendapatkan lokasi semasa...', 'text-gray-600'); navigator.geolocation.getCurrentPosition( (position) => { registrationCoords = { lat: position.coords.latitude, lng: position.coords.longitude }; geocoder.geocode({ 'location': registrationCoords }, (results, status) => { if (status === 'OK' && results[0]) { document.getElementById('sekolah-input').value = results[0].formatted_address; displayMessage('Lokasi semasa berjaya diperoleh.', 'text-green-600'); } else { displayMessage('Gagal menukar lokasi kepada alamat.', 'text-red-600'); } }); }, () => { displayMessage('Gagal mendapatkan lokasi. Sila pastikan anda memberi kebenaran.', 'text-red-600'); } ); }
         clockInBtn.addEventListener('click', () => handleAttendance('clockIn')); clockOutBtn.addEventListener('click', () => handleAttendance('clockOut'));
         async function handleAttendance(type) { displayMessage('Mendapatkan lokasi anda...', 'text-gray-600'); try { if (!currentUser.lat || !currentUser.lng) { throw new Error("Data lokasi sekolah tidak ditemui pada akaun anda."); } const schoolCoords = { lat: currentUser.lat, lng: currentUser.lng }; const userCoords = await getUserCoordinates(); const distance = getDistance(userCoords, schoolCoords); if (distance > 50) { displayMessage(`Anda berada ${distance.toFixed(0)}m dari sekolah. Radius dibenarkan ialah 50m.`, 'text-red-600'); return; } displayMessage('Lokasi disahkan. Merekod kehadiran...', 'text-green-600'); const now = new Date(); const timeString = now.toISOString(); if (type === 'clockIn') { const clockInTime = now.getHours() * 60 + now.getMinutes(); const limitTime = 7 * 60 + 30; if (clockInTime > limitTime) { lateReasonModal.classList.remove('hidden'); submitLateBtn.onclick = () => { const reason = lateReasonInput.value; if (!reason) { alert('Sila masukkan sebab kelewatan.'); return; } recordAttendance('clockIn', timeString, userCoords, 'LEWAT', reason); lateReasonModal.classList.add('hidden'); lateReasonInput.value = ''; }; cancelLateBtn.onclick = () => { lateReasonModal.classList.add('hidden'); displayMessage('Operasi dibatalkan.', 'text-gray-600'); }; } else { recordAttendance('clockIn', timeString, userCoords, 'ON TIME', ''); } } else { recordAttendance('clockOut', timeString, userCoords); } } catch (error) { displayMessage(`Ralat: ${error.message}`, 'text-red-600'); } }
