@@ -137,8 +137,8 @@
         customElements.define('input-field', InputField);
 
         document.addEventListener('DOMContentLoaded', () => {
-            // URL Aplikasi Web Google Apps Script anda telah dimasukkan
-            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxE7ABoO09pJUiHDWUjJYO49BP5xLffZ7P6EtLuOvGezVwbP6CR4P8a6YGF5lESEquFmg/exec'; 
+            // URL Aplikasi Web Google Apps Script anda telah dikemas kini
+            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywZSbL0NwTd9K66KV7xStnVsDHC6kUpAhWLtmPfkqSj6vnjN50bRA4UjVpmNb3GM3m/exec'; 
 
             const loginContainer = document.getElementById('login-container');
             const registerContainer = document.getElementById('register-container');
@@ -218,12 +218,20 @@
                 };
 
                 try {
+                    console.log("Menghantar permintaan log masuk ke:", SCRIPT_URL);
+                    console.log("Payload:", JSON.stringify(payload));
                     const response = await fetch(SCRIPT_URL, {
                         method: 'POST',
+                        mode: 'cors',
+                        cache: 'no-cache',
                         body: JSON.stringify(payload),
                         headers: { 'Content-Type': 'application/json' }
                     });
+                    
+                    if (!response.ok) throw new Error(`Ralat Rangkaian: ${response.status}`);
+                    
                     const result = await response.json();
+                    console.log("Respons dari pelayan:", result);
 
                     if (result.success) {
                         loginContainer.classList.add('hidden');
@@ -234,7 +242,8 @@
                         showMessage(result.message, false);
                     }
                 } catch (error) {
-                    showMessage('Gagal berhubung dengan pelayan. Sila cuba lagi.', false);
+                    console.error("Ralat Fetch Log Masuk:", error);
+                    showMessage(`Gagal berhubung dengan pelayan. Sila semak konsol (F12). Ralat: ${error.message}`, false);
                 } finally {
                     handleButtonLoading(loginForm, false);
                 }
@@ -252,28 +261,35 @@
                         userId: document.getElementById('reg-userid').value,
                         email: document.getElementById('reg-email').value,
                         password: document.getElementById('reg-password').value,
-                        school: document.getElementById('reg-school').value // Ambil nilai dari input tersembunyi
+                        school: document.getElementById('reg-school').value
                     }
                 };
                 
                 try {
+                    console.log("Menghantar permintaan pendaftaran ke:", SCRIPT_URL);
+                    console.log("Payload:", JSON.stringify(payload));
                     const response = await fetch(SCRIPT_URL, {
                         method: 'POST',
+                        mode: 'cors',
+                        cache: 'no-cache',
                         body: JSON.stringify(payload),
                         headers: { 'Content-Type': 'application/json' }
                     });
+
+                    if (!response.ok) throw new Error(`Ralat Rangkaian: ${response.status}`);
+
                     const result = await response.json();
+                    console.log("Respons dari pelayan:", result);
 
                     showMessage(result.message, result.success);
                     if (result.success) {
                         registerForm.reset();
-                        // Reset peta ke lokasi asal
                         initMap();
-                        // Tunggu sekejap sebelum tunjuk borang log masuk
                         setTimeout(() => toggleForms(true), 2000);
                     }
                 } catch (error) {
-                    showMessage('Gagal berhubung dengan pelayan. Sila cuba lagi.', false);
+                    console.error("Ralat Fetch Pendaftaran:", error);
+                    showMessage(`Gagal berhubung dengan pelayan. Sila semak konsol (F12). Ralat: ${error.message}`, false);
                 } finally {
                     handleButtonLoading(registerForm, false);
                 }
