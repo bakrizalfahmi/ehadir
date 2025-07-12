@@ -3,33 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Pengguna</title>
-    <!-- Memuatkan Tailwind CSS untuk reka bentuk moden -->
+    <title>Portal Kehadiran Guru</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Memuatkan Google Maps API untuk fungsi carian lokasi -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCFmD8knK4eRXGaWqXJ7zigxIK3qK9wEeg&libraries=places&callback=initAutocomplete" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCFmD8knK4eRXGaWqXJ7zigxIK3qK9wEeg&libraries=places,geocoding&callback=initMaps" async defer></script>
     <style>
-        /* Gaya tambahan untuk pengalaman pengguna yang lebih baik */
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        .form-container {
-            transition: all 0.3s ease-in-out;
-        }
-        .pac-container { /* Pastikan cadangan autocomplete muncul di atas elemen lain */
-            z-index: 1050 !important;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        .form-container, #dashboard-view { transition: opacity 0.5s ease-in-out; }
+        .pac-container { z-index: 1050 !important; }
+        .modal-overlay { transition: opacity 0.3s ease-in-out; }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
 
-    <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
+    <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg relative overflow-hidden">
         
-        <!-- Paparan Log Masuk (Lalai) -->
+        <!-- Paparan Log Masuk -->
         <div id="login-view" class="form-container">
             <h2 class="text-3xl font-bold text-center text-gray-800">Log Masuk</h2>
-            <p class="text-center text-gray-500">Selamat kembali! Sila masukkan butiran anda.</p>
+            <p class="text-center text-gray-500">Sistem Kehadiran Guru</p>
             <form id="login-form" class="mt-8 space-y-6">
+                <!-- ... (kandungan borang log masuk sama seperti sebelum ini) ... -->
                 <div>
                     <label for="login-id" class="text-sm font-medium text-gray-700">ID Pengguna</label>
                     <input id="login-id" name="idPengguna" type="text" required class="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -49,9 +42,10 @@
             </p>
         </div>
 
-        <!-- Paparan Pendaftaran (Tersembunyi) -->
+        <!-- Paparan Pendaftaran -->
         <div id="register-view" class="form-container hidden">
-            <h2 class="text-3xl font-bold text-center text-gray-800">Daftar Akaun Baru</h2>
+            <!-- ... (kandungan borang pendaftaran sama seperti sebelum ini) ... -->
+             <h2 class="text-3xl font-bold text-center text-gray-800">Daftar Akaun Baru</h2>
             <p class="text-center text-gray-500">Isi borang di bawah untuk mendaftar.</p>
             <form id="register-form" class="mt-8 space-y-4">
                 <input type="text" id="register-nama" placeholder="Nama Penuh" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -59,11 +53,8 @@
                 <input type="email" id="register-email" placeholder="Alamat E-mel" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <input type="password" id="register-password" placeholder="Kata Laluan" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <input type="text" id="sekolah-input" placeholder="Taip Nama Sekolah dan Pilih dari Senarai" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                
                 <div>
-                    <button type="submit" class="w-full py-3 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
-                        Daftar
-                    </button>
+                    <button type="submit" class="w-full py-3 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">Daftar</button>
                 </div>
             </form>
             <p class="mt-6 text-sm text-center text-gray-600">
@@ -71,91 +62,121 @@
             </p>
         </div>
 
-        <!-- Paparan Selepas Log Masuk (Tersembunyi) -->
-        <div id="welcome-view" class="hidden text-center">
-             <h2 class="text-3xl font-bold text-gray-800">Selamat Datang!</h2>
-             <div id="user-info" class="mt-4 text-left p-4 bg-gray-100 rounded-lg"></div>
-             <button id="logout-button" class="mt-6 w-full py-2 font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700">Log Keluar</button>
+        <!-- Paparan Dashboard Kehadiran (BARU) -->
+        <div id="dashboard-view" class="hidden">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-gray-800">Dashboard Kehadiran</h2>
+                <button id="logout-button" class="text-sm text-red-600 hover:underline">Log Keluar</button>
+            </div>
+            <div id="user-info" class="mt-4 p-4 bg-gray-100 rounded-lg text-sm"></div>
+            
+            <div class="mt-6 grid grid-cols-2 gap-4">
+                <button id="clock-in-btn" class="py-4 text-lg font-bold text-white bg-green-600 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    CLOCK IN
+                </button>
+                <button id="clock-out-btn" class="py-4 text-lg font-bold text-white bg-red-600 rounded-lg shadow-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    CLOCK OUT
+                </button>
+            </div>
         </div>
 
         <!-- Kotak Mesej untuk Status/Ralat -->
         <div id="message-box" class="mt-4 text-center text-sm font-medium"></div>
+
     </div>
+
+    <!-- Modal untuk Sebab Lewat (BARU) -->
+    <div id="late-reason-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+            <h3 class="text-lg font-bold">Sila Nyatakan Sebab</h3>
+            <p class="text-sm text-gray-600 mt-1">Anda dikesan lewat. Sila berikan justifikasi anda di bawah.</p>
+            <textarea id="late-reason-input" class="w-full mt-4 p-2 border rounded-md" rows="4"></textarea>
+            <div class="mt-4 flex justify-end gap-3">
+                <button id="cancel-late-btn" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Batal</button>
+                <button id="submit-late-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Hantar</button>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         // --- KONFIGURASI ---
-        // URL Aplikasi Web anda telah dimasukkan di sini.
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZZlAF4SEKOauR9y9lcKKSWn_gLdhWAKqJkmMlCrbxgrTh-xWVNrFXrBFqkZNpD3Qhhg/exec";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwpCBJX2hZxnvadGWRQUxoCQk4bviWQXHrHLlzjyZT1uaiBfc1SQKFLqPF7dXbMs4-S_A/exec";
+        let currentUser = null; // Simpan data pengguna yang log masuk
+        let geocoder;
 
         // --- PEMILIH ELEMEN DOM ---
         const loginView = document.getElementById('login-view');
         const registerView = document.getElementById('register-view');
-        const welcomeView = document.getElementById('welcome-view');
-        
+        const dashboardView = document.getElementById('dashboard-view');
+        const messageBox = document.getElementById('message-box');
         const loginForm = document.getElementById('login-form');
         const registerForm = document.getElementById('register-form');
-        
         const showRegisterLink = document.getElementById('show-register');
         const showLoginLink = document.getElementById('show-login');
         const logoutButton = document.getElementById('logout-button');
+        const clockInBtn = document.getElementById('clock-in-btn');
+        const clockOutBtn = document.getElementById('clock-out-btn');
+        const lateReasonModal = document.getElementById('late-reason-modal');
+        const lateReasonInput = document.getElementById('late-reason-input');
+        const cancelLateBtn = document.getElementById('cancel-late-btn');
+        const submitLateBtn = document.getElementById('submit-late-btn');
 
-        const messageBox = document.getElementById('message-box');
+
+        // --- FUNGSI INISIASI ---
+        function initMaps() {
+            // Fungsi ini dipanggil oleh skrip Google Maps
+            geocoder = new google.maps.Geocoder();
+            initAutocomplete();
+        }
+
+        function initAutocomplete() {
+            const input = document.getElementById('sekolah-input');
+            const options = { componentRestrictions: { country: "my" }, fields: ["name", "formatted_address"], types: ["establishment"] };
+            new google.maps.places.Autocomplete(input, options);
+        }
 
         // --- LOGIK TUKAR PAPARAN ---
-        showRegisterLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginView.classList.add('hidden');
-            registerView.classList.remove('hidden');
-            messageBox.innerHTML = '';
-        });
-
-        showLoginLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            registerView.classList.add('hidden');
-            loginView.classList.remove('hidden');
-            messageBox.innerHTML = '';
-        });
-
+        showRegisterLink.addEventListener('click', (e) => { e.preventDefault(); toggleViews('register'); });
+        showLoginLink.addEventListener('click', (e) => { e.preventDefault(); toggleViews('login'); });
         logoutButton.addEventListener('click', () => {
-             welcomeView.classList.add('hidden');
-             loginView.classList.remove('hidden');
-             loginForm.reset();
-             messageBox.innerHTML = '<p class="text-green-600">Anda telah berjaya log keluar.</p>';
+            currentUser = null;
+            toggleViews('login');
+            displayMessage('Anda telah berjaya log keluar.', 'text-green-600');
         });
+
+        function toggleViews(viewName) {
+            loginView.classList.add('hidden');
+            registerView.classList.add('hidden');
+            dashboardView.classList.add('hidden');
+            messageBox.innerHTML = '';
+
+            if (viewName === 'login') loginView.classList.remove('hidden');
+            if (viewName === 'register') registerView.classList.remove('hidden');
+            if (viewName === 'dashboard') dashboardView.classList.remove('hidden');
+        }
 
         // --- PENGENDALI BORANG ---
         loginForm.addEventListener('submit', handleLogin);
         registerForm.addEventListener('submit', handleRegister);
 
-        function handleLogin(e) {
+        function handleLogin(e) { /* ... sama seperti sebelum ... */ 
             e.preventDefault();
-            const idPengguna = document.getElementById('login-id').value;
-            const kataLaluan = document.getElementById('login-password').value;
-            
             displayMessage('Sedang log masuk...', 'text-gray-600');
-
-            const data = { action: 'loginUser', data: { idPengguna, kataLaluan } };
-            
-            // **PERUBAHAN DI SINI**
-            // Header 'Content-Type' telah dibuang untuk mengelakkan ralat CORS pre-flight.
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify(data),
-            })
-            .then(res => res.json())
-            .then(response => {
-                if (response.status === 'success') {
-                    displayMessage(response.message, 'text-green-600');
-                    showWelcomeScreen(response.userData);
-                } else {
-                    displayMessage(response.message, 'text-red-600');
-                }
-            })
-            .catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600'));
+            const data = { action: 'loginUser', data: { idPengguna: e.target.idPengguna.value, kataLaluan: e.target.kataLaluan.value } };
+            fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) })
+                .then(res => res.json())
+                .then(response => {
+                    if (response.status === 'success') {
+                        currentUser = response.userData;
+                        showDashboard();
+                    } else {
+                        displayMessage(response.message, 'text-red-600');
+                    }
+                }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600'));
         }
-
-        function handleRegister(e) {
-            e.preventDefault();
+        function handleRegister(e) { /* ... sama seperti sebelum ... */ 
+             e.preventDefault();
             const userData = {
                 nama: document.getElementById('register-nama').value,
                 idPengguna: document.getElementById('register-id').value,
@@ -163,60 +184,153 @@
                 kataLaluan: document.getElementById('register-password').value,
                 sekolah: document.getElementById('sekolah-input').value
             };
-
             displayMessage('Mendaftar...', 'text-gray-600');
-
             const data = { action: 'registerUser', data: userData };
-            
-            // **PERUBAHAN DI SINI**
-            // Header 'Content-Type' telah dibuang untuk mengelakkan ralat CORS pre-flight.
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify(data),
-            })
+            fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) })
             .then(res => res.json())
             .then(response => {
                 displayMessage(response.message, response.status === 'success' ? 'text-green-600' : 'text-red-600');
                 if (response.status === 'success') {
                     registerForm.reset();
-                    // Tukar ke paparan log masuk selepas berjaya daftar
-                    setTimeout(() => {
-                        registerView.classList.add('hidden');
-                        loginView.classList.remove('hidden');
-                        messageBox.innerHTML = '<p class="text-green-600">Pendaftaran berjaya! Sila log masuk.</p>';
-                    }, 2000);
+                    setTimeout(() => toggleViews('login'), 2000);
                 }
-            })
-            .catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600'));
+            }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600'));
+        }
+
+        // --- LOGIK DASHBOARD & KEHADIRAN ---
+        function showDashboard() {
+            toggleViews('dashboard');
+            const userInfoDiv = document.getElementById('user-info');
+            userInfoDiv.innerHTML = `
+                <p><strong>Nama:</strong> ${currentUser.nama}</p>
+                <p><strong>E-mel:</strong> ${currentUser.email}</p>
+                <p><strong>Sekolah:</strong> ${currentUser.sekolah}</p>
+            `;
+            // Di sini anda boleh tambah logik untuk menyemak status kehadiran semasa & melumpuhkan butang jika perlu
+        }
+
+        clockInBtn.addEventListener('click', () => handleAttendance('clockIn'));
+        clockOutBtn.addEventListener('click', () => handleAttendance('clockOut'));
+
+        async function handleAttendance(type) {
+            displayMessage('Mendapatkan lokasi anda...', 'text-gray-600');
+            try {
+                const schoolCoords = await getSchoolCoordinates(currentUser.sekolah);
+                const userCoords = await getUserCoordinates();
+                
+                const distance = getDistance(userCoords, schoolCoords);
+                
+                if (distance > 50) { // Jarak dalam meter
+                    displayMessage(`Anda berada ${distance.toFixed(0)} meter dari sekolah. Anda mesti berada dalam radius 50 meter.`, 'text-red-600');
+                    return;
+                }
+
+                displayMessage('Lokasi disahkan. Merekod kehadiran...', 'text-green-600');
+                
+                const now = new Date();
+                const timeString = now.toISOString();
+
+                if (type === 'clockIn') {
+                    const clockInTime = now.getHours() * 60 + now.getMinutes(); // Masa dalam minit
+                    const limitTime = 7 * 60 + 30; // 7:30 AM dalam minit
+
+                    if (clockInTime > limitTime) {
+                        // Lewat, tunjukkan modal
+                        lateReasonModal.classList.remove('hidden');
+                        submitLateBtn.onclick = () => {
+                            const reason = lateReasonInput.value;
+                            if (!reason) { alert('Sila masukkan sebab kelewatan.'); return; }
+                            recordAttendance('clockIn', timeString, 'LEWAT', reason);
+                            lateReasonModal.classList.add('hidden');
+                            lateReasonInput.value = '';
+                        };
+                        cancelLateBtn.onclick = () => {
+                            lateReasonModal.classList.add('hidden');
+                            displayMessage('Operasi dibatalkan.', 'text-gray-600');
+                        };
+                    } else {
+                        // Tepat masa
+                        recordAttendance('clockIn', timeString, 'ON TIME', '');
+                    }
+                } else { // Clock Out
+                    recordAttendance('clockOut', timeString);
+                }
+
+            } catch (error) {
+                displayMessage(`Ralat lokasi: ${error.message}`, 'text-red-600');
+            }
+        }
+        
+        function recordAttendance(type, time, status = '', notes = '') {
+            displayMessage('Menghantar data ke pelayan...', 'text-gray-600');
+            const data = {
+                action: 'recordAttendance',
+                data: {
+                    email: currentUser.email,
+                    type: type,
+                    time: time,
+                    status: status,
+                    notes: notes
+                }
+            };
+            fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) })
+                .then(res => res.json())
+                .then(response => {
+                    displayMessage(response.message, response.status === 'success' ? 'text-green-600' : 'text-red-600');
+                    if(response.status === 'success'){
+                        // Lumpuhkan butang yang relevan
+                        if(type === 'clockIn') clockInBtn.disabled = true;
+                        if(type === 'clockOut') clockOutBtn.disabled = true;
+                    }
+                }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600'));
+        }
+
+        // --- FUNGSI LOKASI & JARAK ---
+        function getSchoolCoordinates(address) {
+            return new Promise((resolve, reject) => {
+                geocoder.geocode({ 'address': address, 'componentRestrictions': {'country': 'MY'} }, (results, status) => {
+                    if (status === 'OK') {
+                        resolve({
+                            lat: results[0].geometry.location.lat(),
+                            lng: results[0].geometry.location.lng()
+                        });
+                    } else {
+                        reject(new Error('Gagal mendapatkan koordinat sekolah: ' + status));
+                    }
+                });
+            });
+        }
+
+        function getUserCoordinates() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocation tidak disokong oleh pelayar ini.'));
+                }
+                navigator.geolocation.getCurrentPosition(
+                    (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
+                    () => reject(new Error('Gagal mendapatkan lokasi anda. Pastikan anda memberi kebenaran.'))
+                );
+            });
+        }
+
+        function getDistance(coords1, coords2) {
+            const R = 6371e3; // Jejari Bumi dalam meter
+            const φ1 = coords1.lat * Math.PI / 180;
+            const φ2 = coords2.lat * Math.PI / 180;
+            const Δφ = (coords2.lat - coords1.lat) * Math.PI / 180;
+            const Δλ = (coords2.lng - coords1.lng) * Math.PI / 180;
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c; // Jarak dalam meter
         }
 
         // --- FUNGSI BANTUAN ---
         function displayMessage(message, className) {
             messageBox.innerHTML = `<p class="${className}">${message}</p>`;
-        }
-        
-        function showWelcomeScreen(userData) {
-            loginView.classList.add('hidden');
-            registerView.classList.add('hidden');
-            welcomeView.classList.remove('hidden');
-            
-            const userInfoDiv = document.getElementById('user-info');
-            userInfoDiv.innerHTML = `
-                <p><strong>Nama:</strong> ${userData.nama}</p>
-                <p><strong>E-mel:</strong> ${userData.email}</p>
-                <p><strong>Sekolah:</strong> ${userData.sekolah}</p>
-            `;
-        }
-
-        // --- FUNGSI GOOGLE MAPS AUTOCOMPLETE ---
-        function initAutocomplete() {
-            const input = document.getElementById('sekolah-input');
-            const options = {
-                componentRestrictions: { country: "my" }, // Hadkan carian ke Malaysia
-                fields: ["name", "formatted_address"],
-                types: ["establishment"] // Fokus pada tempat seperti sekolah, pejabat
-            };
-            const autocomplete = new google.maps.places.Autocomplete(input, options);
         }
     </script>
 </body>
