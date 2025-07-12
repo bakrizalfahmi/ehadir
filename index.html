@@ -336,7 +336,10 @@
                 .then(res => res.json())
                 .then(response => {
                     if (response.status === 'success') {
+                        // DIBAIKI: Logik untuk menetapkan currentUser dengan betul
                         currentUser = response.userData;
+                        currentUser.isAdmin = response.isAdmin; // Tambah flag isAdmin
+
                         if (!currentUser.isAdmin) {
                             currentUser.kataLaluan = passwordVal; 
                         }
