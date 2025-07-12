@@ -3,357 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Log Masuk & Pendaftaran</title>
-    <!-- Memuatkan Tailwind CSS untuk penggayaan yang pantas dan moden -->
+    <title>Portal Pengguna</title>
+    <!-- Memuatkan Tailwind CSS untuk reka bentuk moden -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuatkan Google Maps API untuk fungsi carian lokasi -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCFmD8knK4eRXGaWqXJ7zigxIK3qK9wEeg&libraries=places&callback=initAutocomplete" async defer></script>
     <style>
         /* Gaya tambahan untuk pengalaman pengguna yang lebih baik */
         body {
             font-family: 'Inter', sans-serif;
         }
         .form-container {
-            transition: all 0.5s ease-in-out;
+            transition: all 0.3s ease-in-out;
         }
-        .hidden-form {
-            opacity: 0;
-            transform: scale(0.9);
-            position: absolute;
-            pointer-events: none;
-        }
-        .visible-form {
-            opacity: 1;
-            transform: scale(1);
-            position: relative;
-            pointer-events: auto;
-        }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-radius: 50%;
-            border-top: 4px solid #3498db;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        /* Gaya untuk map canvas */
-        #map {
-            height: 200px;
-            width: 100%;
-            background-color: #e5e7eb; /* Warna latar kelabu */
-            border-radius: 0.375rem; /* rounded-md */
-            margin-top: 0.5rem; /* mt-2 */
+        .pac-container { /* Pastikan cadangan autocomplete muncul di atas elemen lain */
+            z-index: 1050 !important;
         }
     </style>
-    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
 
     <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
         
-        <!-- Mesej Maklum Balas -->
-        <div id="message-box" class="hidden p-4 rounded-md text-sm"></div>
-
-        <!-- Borang Log Masuk -->
-        <div id="login-container" class="form-container visible-form">
-            <h2 class="text-2xl font-bold text-center text-gray-800">Log Masuk</h2>
-            <form id="login-form" class="mt-6 space-y-4">
+        <!-- Paparan Log Masuk (Lalai) -->
+        <div id="login-view" class="form-container">
+            <h2 class="text-3xl font-bold text-center text-gray-800">Log Masuk</h2>
+            <p class="text-center text-gray-500">Selamat kembali! Sila masukkan butiran anda.</p>
+            <form id="login-form" class="mt-8 space-y-6">
                 <div>
-                    <label for="login-email" class="block text-sm font-medium text-gray-700">Email</label>
-                    <input id="login-email" name="email" type="email" required class="w-full px-3 py-2 mt-1 text-gray-700 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label for="login-id" class="text-sm font-medium text-gray-700">ID Pengguna</label>
+                    <input id="login-id" name="idPengguna" type="text" required class="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
-                    <label for="login-password" class="block text-sm font-medium text-gray-700">Kata Laluan</label>
-                    <input id="login-password" name="password" type="password" required class="w-full px-3 py-2 mt-1 text-gray-700 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <label for="login-password" class="text-sm font-medium text-gray-700">Kata Laluan</label>
+                    <input id="login-password" name="kataLaluan" type="password" required class="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
-                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        <span class="btn-text">Log Masuk</span>
-                        <div class="loader hidden"></div>
+                    <button type="submit" class="w-full py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                        Log Masuk
                     </button>
                 </div>
             </form>
-            <p class="mt-4 text-sm text-center text-gray-600">
+            <p class="mt-6 text-sm text-center text-gray-600">
                 Tiada akaun? <a href="#" id="show-register" class="font-medium text-blue-600 hover:underline">Daftar di sini</a>
             </p>
         </div>
 
-        <!-- Borang Pendaftaran -->
-        <div id="register-container" class="form-container hidden-form">
-            <h2 class="text-2xl font-bold text-center text-gray-800">Daftar Akaun Baru</h2>
-            <form id="register-form" class="mt-6 space-y-4">
-                <input-field label="Nama Penuh" id="reg-name" type="text"></input-field>
-                <input-field label="ID Pengguna" id="reg-userid" type="text"></input-field>
-                <input-field label="Email" id="reg-email" type="email"></input-field>
-                <input-field label="Kata Laluan" id="reg-password" type="password"></input-field>
+        <!-- Paparan Pendaftaran (Tersembunyi) -->
+        <div id="register-view" class="form-container hidden">
+            <h2 class="text-3xl font-bold text-center text-gray-800">Daftar Akaun Baru</h2>
+            <p class="text-center text-gray-500">Isi borang di bawah untuk mendaftar.</p>
+            <form id="register-form" class="mt-8 space-y-4">
+                <input type="text" id="register-nama" placeholder="Nama Penuh" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="register-id" placeholder="ID Pengguna (cth: adib_guru)" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="email" id="register-email" placeholder="Alamat E-mel" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="password" id="register-password" placeholder="Kata Laluan" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" id="sekolah-input" placeholder="Taip Nama Sekolah dan Pilih dari Senarai" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 
-                <!-- Medan Sekolah dengan Google Maps Autocomplete -->
                 <div>
-                    <label for="reg-school-search" class="block text-sm font-medium text-gray-700">Sekolah (Cari di Peta)</label>
-                    <input id="reg-school-search" type="text" placeholder="Taip nama sekolah anda di sini" required class="w-full px-3 py-2 mt-1 text-gray-700 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <!-- Input tersembunyi untuk menyimpan nama sekolah yang dipilih -->
-                    <input type="hidden" id="reg-school" name="school">
-                    <div id="map"></div>
-                </div>
-
-                <div>
-                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                        <span class="btn-text">Daftar</span>
-                        <div class="loader hidden"></div>
+                    <button type="submit" class="w-full py-3 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                        Daftar
                     </button>
                 </div>
             </form>
-            <p class="mt-4 text-sm text-center text-gray-600">
+            <p class="mt-6 text-sm text-center text-gray-600">
                 Sudah ada akaun? <a href="#" id="show-login" class="font-medium text-blue-600 hover:underline">Log masuk di sini</a>
             </p>
         </div>
-        
-        <!-- Skrin Kejayaan Selepas Log Masuk -->
-        <div id="welcome-screen" class="hidden text-center">
-            <h2 class="text-2xl font-bold text-green-600">Log Masuk Berjaya!</h2>
-            <p id="welcome-message" class="mt-4 text-lg text-gray-700"></p>
-            <button id="logout-btn" class="mt-6 w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700">Log Keluar</button>
+
+        <!-- Paparan Selepas Log Masuk (Tersembunyi) -->
+        <div id="welcome-view" class="hidden text-center">
+             <h2 class="text-3xl font-bold text-gray-800">Selamat Datang!</h2>
+             <div id="user-info" class="mt-4 text-left p-4 bg-gray-100 rounded-lg"></div>
+             <button id="logout-button" class="mt-6 w-full py-2 font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700">Log Keluar</button>
         </div>
 
+        <!-- Kotak Mesej untuk Status/Ralat -->
+        <div id="message-box" class="mt-4 text-center text-sm font-medium"></div>
     </div>
 
     <script>
-        // Komponen Input Tersuai untuk mengurangkan ulangan kod HTML
-        class InputField extends HTMLElement {
-            connectedCallback() {
-                const label = this.getAttribute('label');
-                const id = this.getAttribute('id');
-                const type = this.getAttribute('type');
-                this.innerHTML = `
-                    <div>
-                        <label for="${id}" class="block text-sm font-medium text-gray-700">${label}</label>
-                        <input id="${id}" name="${id}" type="${type}" required class="w-full px-3 py-2 mt-1 text-gray-700 bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                `;
-            }
-        }
-        customElements.define('input-field', InputField);
+        // --- KONFIGURASI ---
+        // URL Aplikasi Web anda telah dimasukkan di sini.
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwZZlAF4SEKOauR9y9lcKKSWn_gLdhWAKqJkmMlCrbxgrTh-xWVNrFXrBFqkZNpD3Qhhg/exec";
 
-        document.addEventListener('DOMContentLoaded', () => {
-            // URL Aplikasi Web Google Apps Script anda telah dikemas kini
-            const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbywZSbL0NwTd9K66KV7xStnVsDHC6kUpAhWLtmPfkqSj6vnjN50bRA4UjVpmNb3GM3m/exec'; 
+        // --- PEMILIH ELEMEN DOM ---
+        const loginView = document.getElementById('login-view');
+        const registerView = document.getElementById('register-view');
+        const welcomeView = document.getElementById('welcome-view');
+        
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        
+        const showRegisterLink = document.getElementById('show-register');
+        const showLoginLink = document.getElementById('show-login');
+        const logoutButton = document.getElementById('logout-button');
 
-            const loginContainer = document.getElementById('login-container');
-            const registerContainer = document.getElementById('register-container');
-            const welcomeScreen = document.getElementById('welcome-screen');
-            const showRegisterLink = document.getElementById('show-register');
-            const showLoginLink = document.getElementById('show-login');
-            const loginForm = document.getElementById('login-form');
-            const registerForm = document.getElementById('register-form');
-            const messageBox = document.getElementById('message-box');
-            const logoutBtn = document.getElementById('logout-btn');
+        const messageBox = document.getElementById('message-box');
 
-            // Fungsi untuk menukar antara borang log masuk dan pendaftaran
-            const toggleForms = (showLogin) => {
-                if (showLogin) {
-                    loginContainer.classList.remove('hidden-form');
-                    loginContainer.classList.add('visible-form');
-                    registerContainer.classList.remove('visible-form');
-                    registerContainer.classList.add('hidden-form');
-                } else {
-                    registerContainer.classList.remove('hidden-form');
-                    registerContainer.classList.add('visible-form');
-                    loginContainer.classList.remove('visible-form');
-                    loginContainer.classList.add('hidden-form');
-                }
-                welcomeScreen.classList.add('hidden');
-                messageBox.classList.add('hidden');
-            };
-
-            showRegisterLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                toggleForms(false);
-            });
-
-            showLoginLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                toggleForms(true);
-            });
-            
-            logoutBtn.addEventListener('click', () => {
-                toggleForms(true);
-            });
-
-            // Fungsi untuk menunjukkan mesej maklum balas
-            const showMessage = (message, isSuccess) => {
-                messageBox.textContent = message;
-                messageBox.className = `p-4 rounded-md text-sm ${isSuccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
-                messageBox.classList.remove('hidden');
-            };
-
-            // Fungsi untuk menguruskan status butang (loading)
-            const handleButtonLoading = (form, isLoading) => {
-                const button = form.querySelector('button[type="submit"]');
-                const btnText = button.querySelector('.btn-text');
-                const loader = button.querySelector('.loader');
-
-                if (isLoading) {
-                    button.disabled = true;
-                    btnText.classList.add('hidden');
-                    loader.classList.remove('hidden');
-                } else {
-                    button.disabled = false;
-                    btnText.classList.remove('hidden');
-                    loader.classList.add('hidden');
-                }
-            };
-
-            // Mengendalikan penyerahan borang log masuk
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                handleButtonLoading(loginForm, true);
-
-                const formData = new FormData(loginForm);
-                const payload = {
-                    action: 'login',
-                    email: formData.get('email'),
-                    password: formData.get('password')
-                };
-
-                try {
-                    console.log("Menghantar permintaan log masuk ke:", SCRIPT_URL);
-                    console.log("Payload:", JSON.stringify(payload));
-                    const response = await fetch(SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'cors',
-                        cache: 'no-cache',
-                        body: JSON.stringify(payload),
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                    
-                    if (!response.ok) throw new Error(`Ralat Rangkaian: ${response.status}`);
-                    
-                    const result = await response.json();
-                    console.log("Respons dari pelayan:", result);
-
-                    if (result.success) {
-                        loginContainer.classList.add('hidden');
-                        registerContainer.classList.add('hidden');
-                        welcomeScreen.classList.remove('hidden');
-                        document.getElementById('welcome-message').textContent = `Selamat Datang, ${result.name}!`;
-                    } else {
-                        showMessage(result.message, false);
-                    }
-                } catch (error) {
-                    console.error("Ralat Fetch Log Masuk:", error);
-                    showMessage(`Gagal berhubung dengan pelayan. Sila semak konsol (F12). Ralat: ${error.message}`, false);
-                } finally {
-                    handleButtonLoading(loginForm, false);
-                }
-            });
-
-            // Mengendalikan penyerahan borang pendaftaran
-            registerForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                handleButtonLoading(registerForm, true);
-
-                const payload = {
-                    action: 'register',
-                    data: {
-                        name: document.getElementById('reg-name').value,
-                        userId: document.getElementById('reg-userid').value,
-                        email: document.getElementById('reg-email').value,
-                        password: document.getElementById('reg-password').value,
-                        school: document.getElementById('reg-school').value
-                    }
-                };
-                
-                try {
-                    console.log("Menghantar permintaan pendaftaran ke:", SCRIPT_URL);
-                    console.log("Payload:", JSON.stringify(payload));
-                    const response = await fetch(SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'cors',
-                        cache: 'no-cache',
-                        body: JSON.stringify(payload),
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-
-                    if (!response.ok) throw new Error(`Ralat Rangkaian: ${response.status}`);
-
-                    const result = await response.json();
-                    console.log("Respons dari pelayan:", result);
-
-                    showMessage(result.message, result.success);
-                    if (result.success) {
-                        registerForm.reset();
-                        initMap();
-                        setTimeout(() => toggleForms(true), 2000);
-                    }
-                } catch (error) {
-                    console.error("Ralat Fetch Pendaftaran:", error);
-                    showMessage(`Gagal berhubung dengan pelayan. Sila semak konsol (F12). Ralat: ${error.message}`, false);
-                } finally {
-                    handleButtonLoading(registerForm, false);
-                }
-            });
+        // --- LOGIK TUKAR PAPARAN ---
+        showRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginView.classList.add('hidden');
+            registerView.classList.remove('hidden');
+            messageBox.innerHTML = '';
         });
 
-        // =======================================================
-        // FUNGSI UNTUK GOOGLE MAPS
-        // =======================================================
-        let map;
-        let marker;
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerView.classList.add('hidden');
+            loginView.classList.remove('hidden');
+            messageBox.innerHTML = '';
+        });
 
-        function initMap() {
-            // Lokasi awal peta (tengah Malaysia)
-            const initialLocation = { lat: 4.2105, lng: 101.9758 }; 
+        logoutButton.addEventListener('click', () => {
+             welcomeView.classList.add('hidden');
+             loginView.classList.remove('hidden');
+             loginForm.reset();
+             messageBox.innerHTML = '<p class="text-green-600">Anda telah berjaya log keluar.</p>';
+        });
 
-            map = new google.maps.Map(document.getElementById("map"), {
-                center: initialLocation,
-                zoom: 7,
-                mapTypeControl: false, // Sembunyikan pilihan jenis peta
-            });
+        // --- PENGENDALI BORANG ---
+        loginForm.addEventListener('submit', handleLogin);
+        registerForm.addEventListener('submit', handleRegister);
 
-            // Cipta marker yang boleh diguna semula
-            marker = new google.maps.Marker({
-                map: map,
-                anchorPoint: new google.maps.Point(0, -29),
-            });
-
-            const searchInput = document.getElementById("reg-school-search");
-            const hiddenSchoolInput = document.getElementById("reg-school");
+        function handleLogin(e) {
+            e.preventDefault();
+            const idPengguna = document.getElementById('login-id').value;
+            const kataLaluan = document.getElementById('login-password').value;
             
-            // Cipta Autocomplete dan hubungkannya dengan input carian
-            const autocomplete = new google.maps.places.Autocomplete(searchInput, {
-                fields: ["name", "formatted_address", "geometry"],
-                types: ["establishment"] // Fokus carian pada bangunan/tempat
-            });
+            displayMessage('Sedang log masuk...', 'text-gray-600');
 
-            // Apabila pengguna memilih tempat dari senarai
-            autocomplete.addListener("place_changed", () => {
-                marker.setVisible(false);
-                const place = autocomplete.getPlace();
-
-                if (!place.geometry || !place.geometry.location) {
-                    // Pengguna menekan Enter tanpa memilih cadangan
-                    window.alert("Lokasi tidak ditemui: '" + place.name + "'");
-                    return;
+            const data = { action: 'loginUser', data: { idPengguna, kataLaluan } };
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(response => {
+                if (response.status === 'success') {
+                    displayMessage(response.message, 'text-green-600');
+                    showWelcomeScreen(response.userData);
+                } else {
+                    displayMessage(response.message, 'text-red-600');
                 }
+            })
+            .catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600'));
+        }
 
-                // Simpan nama dan alamat penuh dalam input tersembunyi
-                hiddenSchoolInput.value = `${place.name}, ${place.formatted_address}`;
+        function handleRegister(e) {
+            e.preventDefault();
+            const userData = {
+                nama: document.getElementById('register-nama').value,
+                idPengguna: document.getElementById('register-id').value,
+                email: document.getElementById('register-email').value,
+                kataLaluan: document.getElementById('register-password').value,
+                sekolah: document.getElementById('sekolah-input').value
+            };
 
-                // Pusatkan peta pada lokasi yang dipilih
-                map.setCenter(place.geometry.location);
-                map.setZoom(17);
+            displayMessage('Mendaftar...', 'text-gray-600');
 
-                // Letakkan marker pada lokasi
-                marker.setPosition(place.geometry.location);
-                marker.setVisible(true);
-            });
+            const data = { action: 'registerUser', data: userData };
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(response => {
+                displayMessage(response.message, response.status === 'success' ? 'text-green-600' : 'text-red-600');
+                if (response.status === 'success') {
+                    registerForm.reset();
+                    // Tukar ke paparan log masuk selepas berjaya daftar
+                    setTimeout(() => {
+                        registerView.classList.add('hidden');
+                        loginView.classList.remove('hidden');
+                        messageBox.innerHTML = '<p class="text-green-600">Pendaftaran berjaya! Sila log masuk.</p>';
+                    }, 2000);
+                }
+            })
+            .catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600'));
+        }
+
+        // --- FUNGSI BANTUAN ---
+        function displayMessage(message, className) {
+            messageBox.innerHTML = `<p class="${className}">${message}</p>`;
+        }
+        
+        function showWelcomeScreen(userData) {
+            loginView.classList.add('hidden');
+            registerView.classList.add('hidden');
+            welcomeView.classList.remove('hidden');
+            
+            const userInfoDiv = document.getElementById('user-info');
+            userInfoDiv.innerHTML = `
+                <p><strong>Nama:</strong> ${userData.nama}</p>
+                <p><strong>E-mel:</strong> ${userData.email}</p>
+                <p><strong>Sekolah:</strong> ${userData.sekolah}</p>
+            `;
+        }
+
+        // --- FUNGSI GOOGLE MAPS AUTOCOMPLETE ---
+        function initAutocomplete() {
+            const input = document.getElementById('sekolah-input');
+            const options = {
+                componentRestrictions: { country: "my" }, // Hadkan carian ke Malaysia
+                fields: ["name", "formatted_address"],
+                types: ["establishment"] // Fokus pada tempat seperti sekolah, pejabat
+            };
+            const autocomplete = new google.maps.places.Autocomplete(input, options);
         }
     </script>
-    
-    <!-- Kunci API anda telah dimasukkan di sini -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCFmD8knK4eRXGaWqXJ7zigxIK3qK9wEeg&libraries=places&callback=initMap" async defer></script>
-
 </body>
 </html>
