@@ -22,7 +22,6 @@
             <h2 class="text-3xl font-bold text-center text-gray-800">Log Masuk</h2>
             <p class="text-center text-gray-500">Sistem Kehadiran Guru</p>
             <form id="login-form" class="mt-8 space-y-6">
-                <!-- ... (kandungan borang log masuk sama seperti sebelum ini) ... -->
                 <div>
                     <label for="login-id" class="text-sm font-medium text-gray-700">ID Pengguna</label>
                     <input id="login-id" name="idPengguna" type="text" required class="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -44,7 +43,6 @@
 
         <!-- Paparan Pendaftaran -->
         <div id="register-view" class="form-container hidden">
-            <!-- ... (kandungan borang pendaftaran sama seperti sebelum ini) ... -->
              <h2 class="text-3xl font-bold text-center text-gray-800">Daftar Akaun Baru</h2>
             <p class="text-center text-gray-500">Isi borang di bawah untuk mendaftar.</p>
             <form id="register-form" class="mt-8 space-y-4">
@@ -52,7 +50,15 @@
                 <input type="text" id="register-id" placeholder="ID Pengguna (cth: adib_guru)" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <input type="email" id="register-email" placeholder="Alamat E-mel" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <input type="password" id="register-password" placeholder="Kata Laluan" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="text" id="sekolah-input" placeholder="Taip Nama Sekolah dan Pilih dari Senarai" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                
+                <!-- DIKEMAS KINI: Medan Sekolah dengan Butang Lokasi Semasa -->
+                <div class="relative">
+                    <input type="text" id="sekolah-input" placeholder="Taip Nama Sekolah atau guna lokasi semasa" required class="w-full px-4 py-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10">
+                    <button type="button" id="get-current-location-btn" title="Guna Lokasi Semasa" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-blue-600 focus:outline-none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    </button>
+                </div>
+                
                 <div>
                     <button type="submit" class="w-full py-3 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">Daftar</button>
                 </div>
@@ -62,21 +68,16 @@
             </p>
         </div>
 
-        <!-- Paparan Dashboard Kehadiran (BARU) -->
+        <!-- Paparan Dashboard Kehadiran -->
         <div id="dashboard-view" class="hidden">
             <div class="flex justify-between items-center">
                 <h2 class="text-2xl font-bold text-gray-800">Dashboard Kehadiran</h2>
                 <button id="logout-button" class="text-sm text-red-600 hover:underline">Log Keluar</button>
             </div>
             <div id="user-info" class="mt-4 p-4 bg-gray-100 rounded-lg text-sm"></div>
-            
             <div class="mt-6 grid grid-cols-2 gap-4">
-                <button id="clock-in-btn" class="py-4 text-lg font-bold text-white bg-green-600 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                    CLOCK IN
-                </button>
-                <button id="clock-out-btn" class="py-4 text-lg font-bold text-white bg-red-600 rounded-lg shadow-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
-                    CLOCK OUT
-                </button>
+                <button id="clock-in-btn" class="py-4 text-lg font-bold text-white bg-green-600 rounded-lg shadow-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">CLOCK IN</button>
+                <button id="clock-out-btn" class="py-4 text-lg font-bold text-white bg-red-600 rounded-lg shadow-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed">CLOCK OUT</button>
             </div>
         </div>
 
@@ -85,7 +86,7 @@
 
     </div>
 
-    <!-- Modal untuk Sebab Lewat (BARU) -->
+    <!-- Modal untuk Sebab Lewat -->
     <div id="late-reason-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 modal-overlay">
         <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
             <h3 class="text-lg font-bold">Sila Nyatakan Sebab</h3>
@@ -102,7 +103,7 @@
     <script>
         // --- KONFIGURASI ---
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwpCBJX2hZxnvadGWRQUxoCQk4bviWQXHrHLlzjyZT1uaiBfc1SQKFLqPF7dXbMs4-S_A/exec";
-        let currentUser = null; // Simpan data pengguna yang log masuk
+        let currentUser = null;
         let geocoder;
 
         // --- PEMILIH ELEMEN DOM ---
@@ -121,11 +122,10 @@
         const lateReasonInput = document.getElementById('late-reason-input');
         const cancelLateBtn = document.getElementById('cancel-late-btn');
         const submitLateBtn = document.getElementById('submit-late-btn');
-
+        const getCurrentLocationBtn = document.getElementById('get-current-location-btn'); // BARU
 
         // --- FUNGSI INISIASI ---
         function initMaps() {
-            // Fungsi ini dipanggil oleh skrip Google Maps
             geocoder = new google.maps.Geocoder();
             initAutocomplete();
         }
@@ -156,11 +156,12 @@
             if (viewName === 'dashboard') dashboardView.classList.remove('hidden');
         }
 
-        // --- PENGENDALI BORANG ---
+        // --- PENGENDALI BORANG & BUTANG ---
         loginForm.addEventListener('submit', handleLogin);
         registerForm.addEventListener('submit', handleRegister);
+        getCurrentLocationBtn.addEventListener('click', handleGetCurrentLocation); // BARU
 
-        function handleLogin(e) { /* ... sama seperti sebelum ... */ 
+        function handleLogin(e) {
             e.preventDefault();
             displayMessage('Sedang log masuk...', 'text-gray-600');
             const data = { action: 'loginUser', data: { idPengguna: e.target.idPengguna.value, kataLaluan: e.target.kataLaluan.value } };
@@ -175,7 +176,7 @@
                     }
                 }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600'));
         }
-        function handleRegister(e) { /* ... sama seperti sebelum ... */ 
+        function handleRegister(e) {
              e.preventDefault();
             const userData = {
                 nama: document.getElementById('register-nama').value,
@@ -196,6 +197,41 @@
                 }
             }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600'));
         }
+        
+        // FUNGSI BARU: Mendapatkan Lokasi Semasa
+        function handleGetCurrentLocation() {
+            if (!navigator.geolocation) {
+                displayMessage('Geolocation tidak disokong oleh pelayar ini.', 'text-red-600');
+                return;
+            }
+
+            displayMessage('Mendapatkan lokasi semasa...', 'text-gray-600');
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    // Tukar koordinat kepada alamat (Reverse Geocoding)
+                    geocoder.geocode({ 'location': userLocation }, (results, status) => {
+                        if (status === 'OK') {
+                            if (results[0]) {
+                                document.getElementById('sekolah-input').value = results[0].formatted_address;
+                                displayMessage('Lokasi semasa berjaya diperoleh.', 'text-green-600');
+                            } else {
+                                displayMessage('Tiada hasil ditemui.', 'text-red-600');
+                            }
+                        } else {
+                            displayMessage('Geocode gagal: ' + status, 'text-red-600');
+                        }
+                    });
+                },
+                () => {
+                    displayMessage('Gagal mendapatkan lokasi. Sila pastikan anda memberi kebenaran.', 'text-red-600');
+                }
+            );
+        }
 
         // --- LOGIK DASHBOARD & KEHADIRAN ---
         function showDashboard() {
@@ -206,7 +242,6 @@
                 <p><strong>E-mel:</strong> ${currentUser.email}</p>
                 <p><strong>Sekolah:</strong> ${currentUser.sekolah}</p>
             `;
-            // Di sini anda boleh tambah logik untuk menyemak status kehadiran semasa & melumpuhkan butang jika perlu
         }
 
         clockInBtn.addEventListener('click', () => handleAttendance('clockIn'));
@@ -220,7 +255,7 @@
                 
                 const distance = getDistance(userCoords, schoolCoords);
                 
-                if (distance > 50) { // Jarak dalam meter
+                if (distance > 50) {
                     displayMessage(`Anda berada ${distance.toFixed(0)} meter dari sekolah. Anda mesti berada dalam radius 50 meter.`, 'text-red-600');
                     return;
                 }
@@ -231,11 +266,10 @@
                 const timeString = now.toISOString();
 
                 if (type === 'clockIn') {
-                    const clockInTime = now.getHours() * 60 + now.getMinutes(); // Masa dalam minit
-                    const limitTime = 7 * 60 + 30; // 7:30 AM dalam minit
+                    const clockInTime = now.getHours() * 60 + now.getMinutes();
+                    const limitTime = 7 * 60 + 30;
 
                     if (clockInTime > limitTime) {
-                        // Lewat, tunjukkan modal
                         lateReasonModal.classList.remove('hidden');
                         submitLateBtn.onclick = () => {
                             const reason = lateReasonInput.value;
@@ -249,10 +283,9 @@
                             displayMessage('Operasi dibatalkan.', 'text-gray-600');
                         };
                     } else {
-                        // Tepat masa
                         recordAttendance('clockIn', timeString, 'ON TIME', '');
                     }
-                } else { // Clock Out
+                } else {
                     recordAttendance('clockOut', timeString);
                 }
 
@@ -278,7 +311,6 @@
                 .then(response => {
                     displayMessage(response.message, response.status === 'success' ? 'text-green-600' : 'text-red-600');
                     if(response.status === 'success'){
-                        // Lumpuhkan butang yang relevan
                         if(type === 'clockIn') clockInBtn.disabled = true;
                         if(type === 'clockOut') clockOutBtn.disabled = true;
                     }
@@ -314,7 +346,7 @@
         }
 
         function getDistance(coords1, coords2) {
-            const R = 6371e3; // Jejari Bumi dalam meter
+            const R = 6371e3;
             const φ1 = coords1.lat * Math.PI / 180;
             const φ2 = coords2.lat * Math.PI / 180;
             const Δφ = (coords2.lat - coords1.lat) * Math.PI / 180;
@@ -325,7 +357,7 @@
                       Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-            return R * c; // Jarak dalam meter
+            return R * c;
         }
 
         // --- FUNGSI BANTUAN ---
