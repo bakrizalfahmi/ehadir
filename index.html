@@ -135,10 +135,12 @@
             displayMessage('Sedang log masuk...', 'text-gray-600');
 
             const data = { action: 'loginUser', data: { idPengguna, kataLaluan } };
+            
+            // **PERUBAHAN DI SINI**
+            // Header 'Content-Type' telah dibuang untuk mengelakkan ralat CORS pre-flight.
             fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: JSON.stringify(data),
-                headers: { 'Content-Type': 'application/json' }
             })
             .then(res => res.json())
             .then(response => {
@@ -165,10 +167,12 @@
             displayMessage('Mendaftar...', 'text-gray-600');
 
             const data = { action: 'registerUser', data: userData };
+            
+            // **PERUBAHAN DI SINI**
+            // Header 'Content-Type' telah dibuang untuk mengelakkan ralat CORS pre-flight.
             fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: JSON.stringify(data),
-                headers: { 'Content-Type': 'application/json' }
             })
             .then(res => res.json())
             .then(response => {
