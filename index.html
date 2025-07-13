@@ -308,7 +308,6 @@
                     <th class="text-left py-2 px-3">Tarikh</th>
                     <th class="text-left py-2 px-3">Masuk</th>
                     <th class="text-left py-2 px-3">Keluar</th>
-                    <th class="text-left py-2 px-3">Status</th>
                 </tr>
             `;
         }
@@ -326,7 +325,6 @@
                     <th class="text-left py-2 px-3">Tarikh</th>
                     <th class="text-left py-2 px-3">Masuk</th>
                     <th class="text-left py-2 px-3">Keluar</th>
-                    <th class="text-left py-2 px-3">Status</th>
                 </tr>
             `;
         }
@@ -476,7 +474,7 @@
         function renderTable(records) {
             attendanceTableBody.innerHTML = '';
             if (records.length === 0) {
-                const colspan = currentUser.isAdmin ? 5 : 4;
+                const colspan = currentUser.isAdmin ? 4 : 3;
                 attendanceTableBody.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 text-gray-500">Tiada rekod ditemui.</td></tr>`;
                 return;
             }
@@ -494,7 +492,8 @@
                     const clockIn = record['Masa Masuk'] && !isNaN(new Date(record['Masa Masuk'])) ? new Date(record['Masa Masuk']) : null;
                     const clockOut = record['Masa Keluar'] && !isNaN(new Date(record['Masa Keluar'])) ? new Date(record['Masa Keluar']) : null;
                     const adminNameCol = currentUser.isAdmin ? `<td class="py-2 px-3">${record.Nama}</td>` : '';
-                    tr.innerHTML = ` ${adminNameCol} <td class="py-2 px-3">${clockIn ? clockIn.toLocaleDateString('ms-MY') : '-'}</td> <td class="py-2 px-3">${clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3">${clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3"> <span class="px-2 py-1 text-xs font-semibold rounded-full ${record.Status === 'ON TIME' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}"> ${record.Status || '-'} </span> </td> `;
+                    const lateClass = record.Status === 'LEWAT' ? 'text-red-500 font-bold' : '';
+                    tr.innerHTML = ` ${adminNameCol} <td class="py-2 px-3">${clockIn ? clockIn.toLocaleDateString('ms-MY') : '-'}</td> <td class="py-2 px-3 ${lateClass}">${clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3">${clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>`;
                     attendanceTableBody.appendChild(tr);
                 } catch (e) {
                     console.error("Gagal memaparkan rekod:", record, e);
@@ -620,7 +619,7 @@
                 doc.text(`Bulan: ${monthText}`, 14, 30);
                 doc.text(`Status: ${statusText}`, 14, 36);
                 doc.text(`Guru/AKP: ${teacherText}`, 14, 42);
-                const tableColumn = ["Nama", "Tarikh", "Masuk", "Keluar", "Status", "Catatan Lewat", "Sebab Keluar Awal"];
+                const tableColumn = ["Nama", "Tarikh", "Masuk", "Keluar", "Catatan Lewat", "Sebab Keluar Awal"];
                 const tableRows = [];
                 recordsToPrint.forEach(record => {
                     const clockIn = record['Masa Masuk'] ? new Date(record['Masa Masuk']) : null;
@@ -630,7 +629,6 @@
                         clockIn ? clockIn.toLocaleDateString('ms-MY') : '-',
                         clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
                         clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
-                        record.Status || '-',
                         record.Catatan || '',
                         record.Sebab || ''
                     ];
