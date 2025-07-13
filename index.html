@@ -658,19 +658,23 @@
                 doc.text(`Status: ${statusText}`, 14, 36);
                 doc.text(`Guru/AKP: ${teacherText}`, 14, 42);
                 
-                const head = [["Nama", "Guru/AKP", "Tarikh", "Masuk", "Keluar", "Catatan Lewat", "Sebab Keluar Awal"]];
+                const head = [["Nama", "Guru/AKP", "Tarikh", "Masuk 1", "Keluar 1", "Masuk 2", "Keluar 2", "Catatan Lewat", "Sebab Keluar Awal"]];
                 const body = [];
 
                 recordsToPrint.forEach(record => {
-                    const clockIn = record['Masa Masuk 1'] ? new Date(record['Masa Masuk 1']) : null;
-                    const clockOut = record['Masa Keluar 2'] ? new Date(record['Masa Keluar 2']) : (record['Masa Keluar 1'] ? new Date(record['Masa Keluar 1']) : null);
+                    const clockIn1 = record['Masa Masuk 1'] ? new Date(record['Masa Masuk 1']) : null;
+                    const clockOut1 = record['Masa Keluar 1'] ? new Date(record['Masa Keluar 1']) : null;
+                    const clockIn2 = record['Masa Masuk 2'] ? new Date(record['Masa Masuk 2']) : null;
+                    const clockOut2 = record['Masa Keluar 2'] ? new Date(record['Masa Keluar 2']) : null;
                     
                     const rowData = [
                         record.Nama || '-',
                         record.WBF ? 'AKP' : 'Guru',
-                        clockIn ? clockIn.toLocaleDateString('ms-MY') : '-',
-                        clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
-                        clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
+                        clockIn1 ? clockIn1.toLocaleDateString('ms-MY') : '-',
+                        { content: clockIn1 ? clockIn1.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-', styles: { textColor: record.Status === 'LEWAT' ? [255, 0, 0] : [0, 0, 0] } },
+                        clockOut1 ? clockOut1.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
+                        clockIn2 ? clockIn2.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
+                        clockOut2 ? clockOut2.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
                         record.Catatan || '',
                         record.Sebab || ''
                     ];
@@ -688,10 +692,6 @@
                         if (record && data.section === 'body') {
                             if (record.WBF) {
                                 data.cell.styles.fillColor = [240, 240, 240];
-                            }
-                            if (data.column.index === 3 && record.Status === 'LEWAT') {
-                                data.cell.styles.textColor = [255, 0, 0];
-                                data.cell.styles.fontStyle = 'bold';
                             }
                         }
                     }
