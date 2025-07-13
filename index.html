@@ -173,8 +173,9 @@
             <p id="reason-modal-description" class="text-sm text-gray-600 mt-1"></p>
             <textarea id="reason-input" class="w-full mt-4 p-2 border rounded-md" rows="4"></textarea>
             <div class="mt-4 flex justify-end gap-3">
-                <button type="button" id="cancel-reason-btn" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Batal</button>
-                <button id="submit-reason-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Hantar</button>
+                <button type="button" id="cancel-reason-btn" class="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400">Batal</button>
+                <button type="button" id="submit-no-reason-btn" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">Clock Out Sahaja</button>
+                <button id="submit-reason-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Hantar Dengan Sebab</button>
             </div>
         </div>
     </div>
@@ -253,6 +254,7 @@
         const reasonInput = document.getElementById('reason-input');
         const cancelReasonBtn = document.getElementById('cancel-reason-btn');
         const submitReasonBtn = document.getElementById('submit-reason-btn');
+        const submitNoReasonBtn = document.getElementById('submit-no-reason-btn');
         const getCurrentLocationBtn = document.getElementById('get-current-location-btn');
         const rememberMeCheckbox = document.getElementById('remember-me');
         const togglePasswordBtn = document.getElementById('toggle-password-visibility');
@@ -333,19 +335,29 @@
         function showReasonModal(config) {
             reasonModalTitle.textContent = config.title;
             reasonModalDescription.textContent = config.description;
-            reasonInput.value = '';
-            reasonInput.placeholder = config.placeholder || 'Taip sebab anda di sini...';
+            reasonInput.value = config.defaultValue || '';
+            reasonInput.placeholder = config.placeholder || 'Taip sebab di sini...';
             reasonModal.classList.remove('hidden');
             
             submitReasonBtn.onclick = () => {
                 const reason = reasonInput.value;
-                if (!reason) {
+                if (!reason && !config.isOptional) {
                     alert('Sila masukkan sebab anda.');
                     return;
                 }
                 config.submitCallback(reason);
                 reasonModal.classList.add('hidden');
             };
+
+            if (config.isOptional) {
+                submitNoReasonBtn.classList.remove('hidden');
+                submitNoReasonBtn.onclick = () => {
+                    config.noReasonCallback();
+                    reasonModal.classList.add('hidden');
+                };
+            } else {
+                submitNoReasonBtn.classList.add('hidden');
+            }
         }
 
         // --- FUNGSI INISIASI & UTAMA ---
@@ -558,6 +570,7 @@
                             showReasonModal({
                                 title: 'Sila Nyatakan Sebab Lewat',
                                 description: 'Anda dikesan lewat. Sila berikan justifikasi anda di bawah.',
+                                isOptional: false,
                                 submitCallback: (reason) => {
                                     recordAttendance('clockIn', timeString, userCoords, 'LEWAT', reason);
                                 }
@@ -567,26 +580,50 @@
                     }
                     recordAttendance('clockIn', timeString, userCoords, 'ON TIME', ''); 
                 } else { // type === 'clockOut'
+                    const todayRecords = allUserRecords.filter(r => r && r['Masa Masuk'] && new Date(r['Masa Masuk']).toLocaleDateString('ms-MY') === now.toLocaleDateString('ms-MY'));
+                    const openRecord = todayRecords.find(r => !r['Masa Keluar']);
+
+                    if (!openRecord) {
+                        displayAttendanceMessage('Tiada rekod Clock In yang aktif untuk hari ini.', 'text-red-600');
+                        updateButtonStates();
+                        return;
+                    }
+                    
                     if (currentUser.isWBF) {
-                        const todayRecord = allUserRecords.find(r => r && r['Masa Masuk'] && !r['Masa Keluar'] && new Date(r['Masa Masuk']).toLocaleDateString('ms-MY') === now.toLocaleDateString('ms-MY'));
-                        if (todayRecord) {
-                            const clockInTime = new Date(todayRecord['Masa Masuk']);
-                            const workDurationHours = (now - clockInTime) / (1000 * 60 * 60);
-                            const nowMinutes = now.getHours() * 60 + now.getMinutes();
-                            const clockOutLimit = 16 * 60 + 30; // 4:30 PM
-                            
-                            if (nowMinutes < clockOutLimit || workDurationHours < 9) {
-                                showReasonModal({
-                                    title: 'Sebab Keluar Awal',
-                                    description: `Waktu bekerja anda tidak cukup 9 jam atau belum mencapai 4:30 petang. Sila nyatakan sebab untuk keluar awal.`,
-                                    submitCallback: (reason) => {
-                                        recordAttendance('clockOut', timeString, userCoords, '', reason);
-                                    }
-                                });
-                                return;
-                            }
+                        const clockInTime = new Date(openRecord['Masa Masuk']);
+                        const workDurationHours = (now - clockInTime) / (1000 * 60 * 60);
+                        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                        const clockOutLimit = 16 * 60 + 30; // 4:30 PM
+                        
+                        if (nowMinutes < clockOutLimit || workDurationHours < 9) {
+                            showReasonModal({
+                                title: 'Sebab Keluar Awal (WBF)',
+                                description: `Waktu bekerja anda tidak cukup 9 jam atau belum mencapai 4:30 petang. Anda WAJIB menyatakan sebab untuk keluar awal.`,
+                                isOptional: false,
+                                defaultValue: 'REHAT',
+                                submitCallback: (reason) => {
+                                    recordAttendance('clockOut', timeString, userCoords, '', reason);
+                                }
+                            });
+                            return;
                         }
                     }
+                    
+                    if (todayRecords.length === 1 && !openRecord['Masa Keluar']) {
+                         showReasonModal({
+                            title: 'Sebab Clock Out (Pilihan)',
+                            description: 'Jika anda akan masuk semula (cth: mesyuarat), sila nyatakan sebab. Jika ini waktu pulang, anda boleh terus Clock Out tanpa sebab.',
+                            isOptional: true,
+                            submitCallback: (reason) => {
+                                recordAttendance('clockOut', timeString, userCoords, '', reason);
+                            },
+                            noReasonCallback: () => {
+                                recordAttendance('clockOut', timeString, userCoords, '', '');
+                            }
+                        });
+                        return;
+                    }
+
                     recordAttendance('clockOut', timeString, userCoords, '', ''); 
                 } 
             } catch (error) { 
