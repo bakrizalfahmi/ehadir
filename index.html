@@ -646,7 +646,7 @@
                     displayMessage('Tiada data untuk dijana dalam laporan.', 'text-red-600');
                     return;
                 }
-                const doc = new window.jspdf.jsPDF({ orientation: 'landscape' });
+                const doc = new jsPDF({ orientation: 'landscape' });
                 const monthText = monthFilter.options[monthFilter.selectedIndex].text;
                 const statusText = statusFilter.options[statusFilter.selectedIndex].text;
                 const teacherText = teacherFilter.options[teacherFilter.selectedIndex].text;
@@ -664,16 +664,17 @@
                     const clockIn = record['Masa Masuk'] ? new Date(record['Masa Masuk']) : null;
                     const clockOut = record['Masa Keluar'] ? new Date(record['Masa Keluar']) : null;
                     
-                    const rowData = {
+                    tableRows.push({
                         nama: record.Nama || '-',
                         jenis: record.WBF ? 'AKP' : 'Guru',
                         tarikh: clockIn ? clockIn.toLocaleDateString('ms-MY') : '-',
-                        masuk: { content: clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-', isLate: record.Status === 'LEWAT' },
+                        masuk: clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
                         keluar: clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
                         catatan: record.Catatan || '',
-                        sebab: record.Sebab || ''
-                    };
-                    tableRows.push(rowData);
+                        sebab: record.Sebab || '',
+                        isLate: record.Status === 'LEWAT',
+                        isWBF: record.WBF
+                    });
                 });
 
                 doc.autoTable({
@@ -689,17 +690,15 @@
                     body: tableRows,
                     startY: 50,
                     styles: { fontSize: 9 },
-                    headStyles: { fillColor: [41, 128, 185] },
-                    didDrawCell: (data) => {
-                        if (data.column.dataKey === 'masuk' && data.cell.raw.isLate) {
-                            doc.setTextColor(255, 0, 0);
-                        }
-                        if (data.section === 'body' && data.row.raw.jenis === 'AKP') {
+                    headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+                    didParseCell: function (data) {
+                        if (data.section === 'body' && data.row.raw.isWBF) {
                             data.cell.styles.fillColor = [240, 240, 240];
                         }
-                    },
-                    willDrawCell: () => {
-                        doc.setTextColor(0, 0, 0);
+                        if (data.column.dataKey === 'masuk' && data.row.raw.isLate) {
+                            data.cell.styles.textColor = [255, 0, 0];
+                            data.cell.styles.fontStyle = 'bold';
+                        }
                     }
                 });
                 
