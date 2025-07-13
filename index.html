@@ -540,30 +540,46 @@
                 const now = new Date(); 
                 const timeString = now.toISOString(); 
                 if (type === 'clockIn') { 
-                    const clockInTime = now.getHours() * 60 + now.getMinutes(); 
-                    const limitTime = currentUser.isWBF ? (9 * 60) : (7 * 60 + 30); 
-                    if (clockInTime > limitTime) { 
-                        showReasonModal({
-                            title: 'Sila Nyatakan Sebab Lewat',
-                            description: 'Anda dikesan lewat. Sila berikan justifikasi anda di bawah.',
-                            submitCallback: (reason) => {
-                                recordAttendance('clockIn', timeString, userCoords, 'LEWAT', reason);
-                            }
-                        });
-                    } else { 
-                        recordAttendance('clockIn', timeString, userCoords, 'ON TIME', ''); 
-                    } 
+                    const todayRecords = allUserRecords.filter(r => r && r['Masa Masuk'] && new Date(r['Masa Masuk']).toLocaleDateString('ms-MY') === now.toLocaleDateString('ms-MY'));
+                    const openRecord = todayRecords.find(r => !r['Masa Keluar']);
+                    if (openRecord) {
+                        displayAttendanceMessage('Anda perlu Clock Out terlebih dahulu.', 'text-red-600');
+                        updateButtonStates();
+                        return;
+                    }
+                    if (todayRecords.length >= 2) {
+                        displayAttendanceMessage('Anda telah mencapai had 2 kali Clock In hari ini.', 'text-red-600');
+                        return;
+                    }
+                    
+                    if (todayRecords.length === 0) { // Hanya semak lewat untuk Clock In pertama
+                        const clockInTime = now.getHours() * 60 + now.getMinutes(); 
+                        const limitTime = currentUser.isWBF ? (9 * 60) : (7 * 60 + 30); 
+                        if (clockInTime > limitTime) { 
+                            showReasonModal({
+                                title: 'Sila Nyatakan Sebab Lewat',
+                                description: 'Anda dikesan lewat. Sila berikan justifikasi anda di bawah.',
+                                submitCallback: (reason) => {
+                                    recordAttendance('clockIn', timeString, userCoords, 'LEWAT', reason);
+                                }
+                            });
+                            return;
+                        }
+                    }
+                    recordAttendance('clockIn', timeString, userCoords, 'ON TIME', ''); 
                 } else { // type === 'clockOut'
                     if (currentUser.isWBF) {
-                        const todayRecord = allUserRecords.find(r => r && r['Masa Masuk'] && new Date(r['Masa Masuk']).toLocaleDateString('ms-MY') === now.toLocaleDateString('ms-MY'));
+                        const todayRecord = allUserRecords.find(r => r && r['Masa Masuk'] && !r['Masa Keluar'] && new Date(r['Masa Masuk']).toLocaleDateString('ms-MY') === now.toLocaleDateString('ms-MY'));
                         if (todayRecord) {
                             const clockInTime = new Date(todayRecord['Masa Masuk']);
                             const workDurationHours = (now - clockInTime) / (1000 * 60 * 60);
+                            const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                            const clockOutLimit = 16 * 60 + 30; // 4:30 PM
                             
-                            if (workDurationHours < 9) {
+                            if (nowMinutes < clockOutLimit || workDurationHours < 9) {
                                 showReasonModal({
                                     title: 'Sebab Keluar Awal',
-                                    description: `Waktu bekerja anda belum cukup 9 jam. Sila nyatakan sebab untuk keluar awal.`,
+                                    description: `Waktu bekerja anda tidak cukup 9 jam atau belum mencapai 4:30 petang. Sila nyatakan sebab untuk keluar awal.`,
                                     submitCallback: (reason) => {
                                         recordAttendance('clockOut', timeString, userCoords, '', reason);
                                     }
