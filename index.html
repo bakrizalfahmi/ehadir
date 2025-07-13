@@ -228,7 +228,7 @@
         let registrationCoords = null; 
         let allUserRecords = [];
         let clockInterval;
-        const { jsPDF } = window.jspdf;
+        let jsPDF; // Diisytiharkan di sini
 
         // --- PEMILIH ELEMEN DOM ---
         const loginRegisterWrapper = document.getElementById('login-register-wrapper');
@@ -365,6 +365,7 @@
             geocoder = new google.maps.Geocoder();
             initAutocomplete();
             checkRememberMe();
+            jsPDF = window.jspdf.jsPDF; // Inisiasi jsPDF selepas ia dimuatkan
         }
         
         // --- LOGIK "REMEMBER ME" & VISIBILITY KATA LALUAN ---
@@ -645,7 +646,7 @@
                     displayMessage('Tiada data untuk dijana dalam laporan.', 'text-red-600');
                     return;
                 }
-                const doc = new jsPDF({ orientation: 'landscape' });
+                const doc = new window.jspdf.jsPDF({ orientation: 'landscape' });
                 const monthText = monthFilter.options[monthFilter.selectedIndex].text;
                 const statusText = statusFilter.options[statusFilter.selectedIndex].text;
                 const teacherText = teacherFilter.options[teacherFilter.selectedIndex].text;
@@ -656,51 +657,45 @@
                 doc.text(`Bulan: ${monthText}`, 14, 30);
                 doc.text(`Status: ${statusText}`, 14, 36);
                 doc.text(`Guru/AKP: ${teacherText}`, 14, 42);
-                const tableColumn = ["Nama", "Guru/AKP", "Tarikh", "Masuk 1", "Keluar 1", "Sebab Keluar 1", "Masuk 2", "Keluar 2", "Sebab Keluar 2"];
+                const tableColumn = ["Nama", "Guru/AKP", "Tarikh", "Masuk", "Keluar", "Catatan Lewat", "Sebab Keluar Awal"];
                 const tableRows = [];
-                const groupedData = {};
+                
                 recordsToPrint.forEach(record => {
-                    const date = new Date(record['Masa Masuk']).toLocaleDateString('ms-MY');
-                    const key = `${record.Nama}|${date}`;
-                    if (!groupedData[key]) {
-                        groupedData[key] = {
-                            Nama: record.Nama,
-                            Jenis: record.WBF ? 'AKP' : 'Guru',
-                            Tarikh: date,
-                            entries: []
-                        };
-                    }
-                    groupedData[key].entries.push(record);
-                });
-
-                Object.values(groupedData).forEach(group => {
-                    const entry1 = group.entries[0] || {};
-                    const entry2 = group.entries[1] || {};
-                    const clockIn1 = entry1['Masa Masuk'] ? new Date(entry1['Masa Masuk']) : null;
-                    const clockOut1 = entry1['Masa Keluar'] ? new Date(entry1['Masa Keluar']) : null;
-                    const clockIn2 = entry2['Masa Masuk'] ? new Date(entry2['Masa Masuk']) : null;
-                    const clockOut2 = entry2['Masa Keluar'] ? new Date(entry2['Masa Keluar']) : null;
-
-                    tableRows.push({
-                        nama: group.Nama,
-                        jenis: group.Jenis,
-                        tarikh: group.Tarikh,
-                        masuk1: { content: clockIn1 ? clockIn1.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-', isLate: entry1.Status === 'LEWAT' },
-                        keluar1: clockOut1 ? clockOut1.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
-                        sebab1: entry1.Sebab || '',
-                        masuk2: clockIn2 ? clockIn2.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
-                        keluar2: clockOut2 ? clockOut2.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
-                        sebab2: entry2.Sebab || ''
-                    });
+                    const clockIn = record['Masa Masuk'] ? new Date(record['Masa Masuk']) : null;
+                    const clockOut = record['Masa Keluar'] ? new Date(record['Masa Keluar']) : null;
+                    
+                    const rowData = {
+                        nama: record.Nama || '-',
+                        jenis: record.WBF ? 'AKP' : 'Guru',
+                        tarikh: clockIn ? clockIn.toLocaleDateString('ms-MY') : '-',
+                        masuk: { content: clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-', isLate: record.Status === 'LEWAT' },
+                        keluar: clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
+                        catatan: record.Catatan || '',
+                        sebab: record.Sebab || ''
+                    };
+                    tableRows.push(rowData);
                 });
 
                 doc.autoTable({
-                    columns: tableColumn.map(c => ({ header: c.header, dataKey: c.dataKey })),
+                    columns: [
+                        { header: 'Nama', dataKey: 'nama' },
+                        { header: 'Guru/AKP', dataKey: 'jenis' },
+                        { header: 'Tarikh', dataKey: 'tarikh' },
+                        { header: 'Masuk', dataKey: 'masuk' },
+                        { header: 'Keluar', dataKey: 'keluar' },
+                        { header: 'Catatan Lewat', dataKey: 'catatan' },
+                        { header: 'Sebab Keluar Awal', dataKey: 'sebab' }
+                    ],
                     body: tableRows,
                     startY: 50,
+                    styles: { fontSize: 9 },
+                    headStyles: { fillColor: [41, 128, 185] },
                     didDrawCell: (data) => {
-                        if (data.column.dataKey === 'masuk1' && data.cell.raw.isLate) {
+                        if (data.column.dataKey === 'masuk' && data.cell.raw.isLate) {
                             doc.setTextColor(255, 0, 0);
+                        }
+                        if (data.section === 'body' && data.row.raw.jenis === 'AKP') {
+                            data.cell.styles.fillColor = [240, 240, 240];
                         }
                     },
                     willDrawCell: () => {
