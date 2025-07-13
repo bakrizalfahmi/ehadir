@@ -306,10 +306,12 @@
             adminActions.classList.remove('hidden');
             attendanceTableHead.innerHTML = `
                 <tr>
-                    <th class="text-left py-2 px-3">Nama Guru</th>
+                    <th class="text-left py-2 px-3">Nama</th>
                     <th class="text-left py-2 px-3">Tarikh</th>
-                    <th class="text-left py-2 px-3">Masuk</th>
-                    <th class="text-left py-2 px-3">Keluar</th>
+                    <th class="text-left py-2 px-3">Masuk 1</th>
+                    <th class="text-left py-2 px-3">Keluar 1</th>
+                    <th class="text-left py-2 px-3">Masuk 2</th>
+                    <th class="text-left py-2 px-3">Keluar 2</th>
                 </tr>
             `;
         }
@@ -325,8 +327,10 @@
             attendanceTableHead.innerHTML = `
                 <tr>
                     <th class="text-left py-2 px-3">Tarikh</th>
-                    <th class="text-left py-2 px-3">Masuk</th>
-                    <th class="text-left py-2 px-3">Keluar</th>
+                    <th class="text-left py-2 px-3">Masuk 1</th>
+                    <th class="text-left py-2 px-3">Keluar 1</th>
+                    <th class="text-left py-2 px-3">Masuk 2</th>
+                    <th class="text-left py-2 px-3">Keluar 2</th>
                 </tr>
             `;
         }
@@ -487,13 +491,13 @@
         function renderTable(records) {
             attendanceTableBody.innerHTML = '';
             if (records.length === 0) {
-                const colspan = currentUser.isAdmin ? 4 : 3;
+                const colspan = currentUser.isAdmin ? 6 : 5;
                 attendanceTableBody.innerHTML = `<tr><td colspan="${colspan}" class="text-center p-4 text-gray-500">Tiada rekod ditemui.</td></tr>`;
                 return;
             }
             records.sort((a, b) => {
-                const dateA = a && a['Masa Masuk'] ? new Date(a['Masa Masuk']) : null;
-                const dateB = b && b['Masa Masuk'] ? new Date(b['Masa Masuk']) : null;
+                const dateA = a && a['Masa Masuk 1'] ? new Date(a['Masa Masuk 1']) : null;
+                const dateB = b && b['Masa Masuk 1'] ? new Date(b['Masa Masuk 1']) : null;
                 if (!dateA || isNaN(dateA)) return 1;
                 if (!dateB || isNaN(dateB)) return -1;
                 return dateB - dateA;
@@ -502,11 +506,13 @@
                 try {
                     const tr = document.createElement('tr');
                     tr.className = 'hover:bg-gray-50';
-                    const clockIn = record['Masa Masuk'] && !isNaN(new Date(record['Masa Masuk'])) ? new Date(record['Masa Masuk']) : null;
-                    const clockOut = record['Masa Keluar'] && !isNaN(new Date(record['Masa Keluar'])) ? new Date(record['Masa Keluar']) : null;
+                    const clockIn1 = record['Masa Masuk 1'] && !isNaN(new Date(record['Masa Masuk 1'])) ? new Date(record['Masa Masuk 1']) : null;
+                    const clockOut1 = record['Masa Keluar 1'] && !isNaN(new Date(record['Masa Keluar 1'])) ? new Date(record['Masa Keluar 1']) : null;
+                    const clockIn2 = record['Masa Masuk 2'] && !isNaN(new Date(record['Masa Masuk 2'])) ? new Date(record['Masa Masuk 2']) : null;
+                    const clockOut2 = record['Masa Keluar 2'] && !isNaN(new Date(record['Masa Keluar 2'])) ? new Date(record['Masa Keluar 2']) : null;
                     const adminNameCol = currentUser.isAdmin ? `<td class="py-2 px-3">${record.Nama}</td>` : '';
                     const lateClass = record.Status === 'LEWAT' ? 'text-red-500 font-bold' : '';
-                    tr.innerHTML = ` ${adminNameCol} <td class="py-2 px-3">${clockIn ? clockIn.toLocaleDateString('ms-MY') : '-'}</td> <td class="py-2 px-3 ${lateClass}">${clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3">${clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>`;
+                    tr.innerHTML = ` ${adminNameCol} <td class="py-2 px-3">${clockIn1 ? clockIn1.toLocaleDateString('ms-MY') : '-'}</td> <td class="py-2 px-3 ${lateClass}">${clockIn1 ? clockIn1.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3">${clockOut1 ? clockOut1.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3">${clockIn2 ? clockIn2.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td> <td class="py-2 px-3">${clockOut2 ? clockOut2.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>`;
                     attendanceTableBody.appendChild(tr);
                 } catch (e) {
                     console.error("Gagal memaparkan rekod:", record, e);
@@ -516,21 +522,21 @@
         function populateTeacherFilter() { const teachers = [...new Set(allUserRecords.map(r => r.Nama))].sort(); teacherFilter.innerHTML = '<option value="all">Semua Guru</option>'; teachers.forEach(teacher => { const option = document.createElement('option'); option.value = teacher; option.textContent = teacher; teacherFilter.appendChild(option); }); }
         function populateMonthFilter() {
             if (!allUserRecords || allUserRecords.length === 0) return;
-            const validRecords = allUserRecords.filter(r => r && r['Masa Masuk'] && !isNaN(new Date(r['Masa Masuk'])));
+            const validRecords = allUserRecords.filter(r => r && r['Masa Masuk 1'] && !isNaN(new Date(r['Masa Masuk 1'])));
             if (validRecords.length === 0) return;
-            const months = [...new Set(validRecords.map(r => new Date(r['Masa Masuk']).toLocaleString('ms-MY', { month: 'long', year: 'numeric' })))];
+            const months = [...new Set(validRecords.map(r => new Date(r['Masa Masuk 1']).toLocaleString('ms-MY', { month: 'long', year: 'numeric' })))];
             monthFilter.innerHTML = '<option value="all">Semua Bulan</option>';
             months.forEach(month => {
                 const option = document.createElement('option');
-                const date = new Date(validRecords.find(r => new Date(r['Masa Masuk']).toLocaleString('ms-MY', { month: 'long', year: 'numeric' }) === month)['Masa Masuk']);
+                const date = new Date(validRecords.find(r => new Date(r['Masa Masuk 1']).toLocaleString('ms-MY', { month: 'long', year: 'numeric' }) === month)['Masa Masuk 1']);
                 option.value = `${date.getFullYear()}-${date.getMonth()}`;
                 option.textContent = month;
                 monthFilter.appendChild(option);
             });
         }
-        function getFilteredRecords() { const selectedMonth = monthFilter.value; const selectedStatus = statusFilter.value; const selectedTeacher = currentUser.isAdmin ? teacherFilter.value : 'all'; const selectedWBF = currentUser.isAdmin ? wbfFilter.value : 'all'; let filteredRecords = allUserRecords.filter(r => r && r['Masa Masuk'] && !isNaN(new Date(r['Masa Masuk']))); if (selectedStatus !== 'all') { filteredRecords = filteredRecords.filter(r => r.Status === selectedStatus); } if (selectedMonth !== 'all') { const [year, month] = selectedMonth.split('-'); filteredRecords = filteredRecords.filter(r => { const recordDate = new Date(r['Masa Masuk']); return recordDate.getFullYear() == year && recordDate.getMonth() == month; }); } if (currentUser.isAdmin && selectedTeacher !== 'all') { filteredRecords = filteredRecords.filter(r => r.Nama === selectedTeacher); } if (currentUser.isAdmin && selectedWBF !== 'all') { const isWBF = selectedWBF === 'true'; filteredRecords = filteredRecords.filter(r => r.WBF === isWBF); } return filteredRecords; }
+        function getFilteredRecords() { const selectedMonth = monthFilter.value; const selectedStatus = statusFilter.value; const selectedTeacher = currentUser.isAdmin ? teacherFilter.value : 'all'; const selectedWBF = currentUser.isAdmin ? wbfFilter.value : 'all'; let filteredRecords = allUserRecords.filter(r => r && r['Masa Masuk 1'] && !isNaN(new Date(r['Masa Masuk 1']))); if (selectedStatus !== 'all') { filteredRecords = filteredRecords.filter(r => r.Status === selectedStatus); } if (selectedMonth !== 'all') { const [year, month] = selectedMonth.split('-'); filteredRecords = filteredRecords.filter(r => { const recordDate = new Date(r['Masa Masuk 1']); return recordDate.getFullYear() == year && recordDate.getMonth() == month; }); } if (currentUser.isAdmin && selectedTeacher !== 'all') { filteredRecords = filteredRecords.filter(r => r.Nama === selectedTeacher); } if (currentUser.isAdmin && selectedWBF !== 'all') { const isWBF = selectedWBF === 'true'; filteredRecords = filteredRecords.filter(r => r.WBF === isWBF); } return filteredRecords; }
         function applyFilters() { const filteredRecords = getFilteredRecords(); onTimeCountEl.textContent = filteredRecords.filter(r => r.Status === 'ON TIME').length; lateCountEl.textContent = filteredRecords.filter(r => r.Status === 'LEWAT').length; renderTable(filteredRecords); }
-        function updateButtonStates() { const todayStr = new Date().toLocaleDateString('ms-MY'); const todayRecords = allUserRecords.filter(r => r && r['Masa Masuk'] && !isNaN(new Date(r['Masa Masuk'])) && new Date(r['Masa Masuk']).toLocaleDateString('ms-MY') === todayStr); const openRecord = todayRecords.find(r => !r['Masa Keluar']); if (openRecord) { clockInBtn.disabled = true; clockOutBtn.disabled = false; } else { if (todayRecords.length >= 2) { clockInBtn.disabled = true; clockOutBtn.disabled = true; } else { clockInBtn.disabled = false; clockOutBtn.disabled = true; } } }
+        function updateButtonStates() { const todayStr = new Date().toLocaleDateString('ms-MY'); const todayRecord = allUserRecords.find(r => r && r['Masa Masuk 1'] && !isNaN(new Date(r['Masa Masuk 1'])) && new Date(r['Masa Masuk 1']).toLocaleDateString('ms-MY') === todayStr); if (!todayRecord) { clockInBtn.disabled = false; clockOutBtn.disabled = true; return; } const hasClockIn1 = !!todayRecord['Masa Masuk 1']; const hasClockOut1 = !!todayRecord['Masa Keluar 1']; const hasClockIn2 = !!todayRecord['Masa Masuk 2']; const hasClockOut2 = !!todayRecord['Masa Keluar 2']; if (hasClockIn1 && !hasClockOut1) { clockInBtn.disabled = true; clockOutBtn.disabled = false; } else if (hasClockOut1 && !hasClockIn2) { clockInBtn.disabled = false; clockOutBtn.disabled = true; } else if (hasClockIn2 && !hasClockOut2) { clockInBtn.disabled = true; clockOutBtn.disabled = false; } else { clockInBtn.disabled = true; clockOutBtn.disabled = true; } }
         function initAutocomplete() { const input = document.getElementById('sekolah-input'); const options = { componentRestrictions: { country: "my" }, fields: ["name", "formatted_address", "geometry"], types: ["establishment"] }; const autocomplete = new google.maps.places.Autocomplete(input, options); autocomplete.addListener('place_changed', () => { const place = autocomplete.getPlace(); if (place.geometry && place.geometry.location) { registrationCoords = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() }; } }); }
         async function handleRegister(e) { e.preventDefault(); displayMessage('Mengesahkan lokasi...', 'text-gray-600'); try { if (!registrationCoords) { const address = document.getElementById('sekolah-input').value; if (!address) { displayMessage('Sila masukkan nama sekolah atau guna lokasi semasa.', 'text-red-600'); return; } registrationCoords = await getSchoolCoordinates(address); } const userData = { nama: document.getElementById('register-nama').value, idPengguna: document.getElementById('register-id').value, email: document.getElementById('register-email').value, kataLaluan: document.getElementById('register-password').value, sekolah: document.getElementById('sekolah-input').value, lat: registrationCoords.lat, lng: registrationCoords.lng, isWBF: registerWBF.checked }; displayMessage('Mendaftar...', 'text-gray-600'); const data = { action: 'registerUser', data: userData }; fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data) }).then(res => res.json()).then(response => { displayMessage(response.message, response.status === 'success' ? 'text-green-600' : 'text-red-600'); if (response.status === 'success') { registerForm.reset(); registrationCoords = null; setTimeout(() => showAuthUI('login'), 2000); } }).catch(error => displayMessage('Ralat rangkaian: ' + error, 'text-red-600')); } catch (error) { displayMessage('Gagal mengesahkan alamat sekolah. Pastikan nama adalah betul. ' + error.message, 'text-red-600'); } }
         function handleGetCurrentLocation() { if (!navigator.geolocation) { displayMessage('Geolocation tidak disokong oleh pelayar ini.', 'text-red-600'); return; } displayMessage('Mendapatkan lokasi semasa...', 'text-gray-600'); navigator.geolocation.getCurrentPosition( (position) => { registrationCoords = { lat: position.coords.latitude, lng: position.coords.longitude }; geocoder.geocode({ 'location': registrationCoords }, (results, status) => { if (status === 'OK' && results[0]) { document.getElementById('sekolah-input').value = results[0].formatted_address; displayMessage('Lokasi semasa berjaya diperoleh.', 'text-green-600'); } else { displayMessage('Gagal menukar lokasi kepada alamat.', 'text-red-600'); } }); }, () => { displayMessage('Gagal mendapatkan lokasi. Sila pastikan anda memberi kebenaran.', 'text-red-600'); } ); }
@@ -552,19 +558,13 @@
                 const now = new Date(); 
                 const timeString = now.toISOString(); 
                 if (type === 'clockIn') { 
-                    const todayRecords = allUserRecords.filter(r => r && r['Masa Masuk'] && new Date(r['Masa Masuk']).toLocaleDateString('ms-MY') === now.toLocaleDateString('ms-MY'));
-                    const openRecord = todayRecords.find(r => !r['Masa Keluar']);
-                    if (openRecord) {
-                        displayAttendanceMessage('Anda perlu Clock Out terlebih dahulu.', 'text-red-600');
-                        updateButtonStates();
-                        return;
-                    }
-                    if (todayRecords.length >= 2) {
-                        displayAttendanceMessage('Anda telah mencapai had 2 kali Clock In hari ini.', 'text-red-600');
-                        return;
-                    }
-                    
-                    if (todayRecords.length === 0) { // Hanya semak lewat untuk Clock In pertama
+                    const todayRecords = allUserRecords.filter(r => r && r['Masa Masuk 1'] && new Date(r['Masa Masuk 1']).toLocaleDateString('ms-MY') === now.toLocaleDateString('ms-MY'));
+                    const todayRecord = todayRecords[0];
+                    if (todayRecord && todayRecord['Masa Masuk 1'] && todayRecord['Masa Keluar 1'] && !todayRecord['Masa Masuk 2']) {
+                        // Clock In kedua
+                        recordAttendance('clockIn', timeString, userCoords, 'ON TIME', '');
+                    } else if (!todayRecord) {
+                        // Clock In pertama
                         const clockInTime = now.getHours() * 60 + now.getMinutes(); 
                         const limitTime = currentUser.isWBF ? (9 * 60) : (7 * 60 + 30); 
                         if (clockInTime > limitTime) { 
@@ -578,40 +578,40 @@
                             });
                             return;
                         }
+                        recordAttendance('clockIn', timeString, userCoords, 'ON TIME', ''); 
+                    } else {
+                        displayAttendanceMessage('Operasi tidak dibenarkan.', 'text-red-600');
+                        updateButtonStates();
                     }
-                    recordAttendance('clockIn', timeString, userCoords, 'ON TIME', ''); 
                 } else { // type === 'clockOut'
-                    const todayRecords = allUserRecords.filter(r => r && r['Masa Masuk'] && new Date(r['Masa Masuk']).toLocaleDateString('ms-MY') === now.toLocaleDateString('ms-MY'));
-                    const openRecord = todayRecords.find(r => !r['Masa Keluar']);
-
-                    if (!openRecord) {
-                        displayAttendanceMessage('Tiada rekod Clock In yang aktif untuk hari ini.', 'text-red-600');
+                    const todayRecord = allUserRecords.find(r => r && r['Masa Masuk 1'] && new Date(r['Masa Masuk 1']).toLocaleDateString('ms-MY') === now.toLocaleDateString('ms-MY'));
+                    if (!todayRecord) {
+                        displayAttendanceMessage('Tiada rekod Clock In ditemui untuk hari ini.', 'text-red-600');
                         updateButtonStates();
                         return;
                     }
                     
-                    if (currentUser.isWBF) {
-                        const clockInTime = new Date(openRecord['Masa Masuk']);
-                        const workDurationHours = (now - clockInTime) / (1000 * 60 * 60);
-                        const nowMinutes = now.getHours() * 60 + now.getMinutes();
-                        const clockOutLimit = 16 * 60 + 30; // 4:30 PM
-                        
-                        if (nowMinutes < clockOutLimit || workDurationHours < 9) {
-                            showReasonModal({
-                                title: 'Sebab Keluar Awal (WBF)',
-                                description: `Waktu bekerja anda tidak cukup 9 jam atau belum mencapai 4:30 petang. Anda WAJIB menyatakan sebab untuk keluar awal.`,
-                                isOptional: false,
-                                defaultValue: 'REHAT',
-                                submitCallback: (reason) => {
-                                    recordAttendance('clockOut', timeString, userCoords, '', reason);
-                                }
-                            });
-                            return;
+                    if (todayRecord['Masa Masuk 1'] && !todayRecord['Masa Keluar 1']) {
+                        // Clock Out pertama
+                        if (currentUser.isWBF) {
+                            const clockInTime = new Date(todayRecord['Masa Masuk 1']);
+                            const workDurationHours = (now - clockInTime) / (1000 * 60 * 60);
+                            const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                            const clockOutLimit = 16 * 60 + 30; // 4:30 PM
+                            if (nowMinutes < clockOutLimit || workDurationHours < 9) {
+                                showReasonModal({
+                                    title: 'Sebab Keluar Awal (WBF)',
+                                    description: `Waktu bekerja anda tidak cukup 9 jam atau belum mencapai 4:30 petang. Anda WAJIB menyatakan sebab untuk keluar awal.`,
+                                    isOptional: false,
+                                    defaultValue: 'REHAT',
+                                    submitCallback: (reason) => {
+                                        recordAttendance('clockOut', timeString, userCoords, '', reason);
+                                    }
+                                });
+                                return;
+                            }
                         }
-                    }
-                    
-                    if (todayRecords.length === 1 && !openRecord['Masa Keluar']) {
-                         showReasonModal({
+                        showReasonModal({
                             title: 'Sebab Clock Out (Pilihan)',
                             description: 'Jika anda akan masuk semula (cth: mesyuarat), sila nyatakan sebab. Jika ini waktu pulang, anda boleh terus Clock Out tanpa sebab.',
                             isOptional: true,
@@ -622,10 +622,10 @@
                                 recordAttendance('clockOut', timeString, userCoords, '', '');
                             }
                         });
-                        return;
+                    } else if (todayRecord['Masa Masuk 2'] && !todayRecord['Masa Keluar 2']) {
+                        // Clock Out kedua
+                        recordAttendance('clockOut', timeString, userCoords, '', '');
                     }
-
-                    recordAttendance('clockOut', timeString, userCoords, '', ''); 
                 } 
             } catch (error) { 
                 displayAttendanceMessage(`Ralat: ${error.message}`, 'text-red-600');
@@ -657,47 +657,42 @@
                 doc.text(`Bulan: ${monthText}`, 14, 30);
                 doc.text(`Status: ${statusText}`, 14, 36);
                 doc.text(`Guru/AKP: ${teacherText}`, 14, 42);
-                const tableColumn = ["Nama", "Guru/AKP", "Tarikh", "Masuk", "Keluar", "Catatan Lewat", "Sebab Keluar Awal"];
-                const tableRows = [];
                 
+                const head = [["Nama", "Guru/AKP", "Tarikh", "Masuk", "Keluar", "Catatan Lewat", "Sebab Keluar Awal"]];
+                const body = [];
+
                 recordsToPrint.forEach(record => {
-                    const clockIn = record['Masa Masuk'] ? new Date(record['Masa Masuk']) : null;
-                    const clockOut = record['Masa Keluar'] ? new Date(record['Masa Keluar']) : null;
+                    const clockIn = record['Masa Masuk 1'] ? new Date(record['Masa Masuk 1']) : null;
+                    const clockOut = record['Masa Keluar 2'] ? new Date(record['Masa Keluar 2']) : (record['Masa Keluar 1'] ? new Date(record['Masa Keluar 1']) : null);
                     
-                    tableRows.push({
-                        nama: record.Nama || '-',
-                        jenis: record.WBF ? 'AKP' : 'Guru',
-                        tarikh: clockIn ? clockIn.toLocaleDateString('ms-MY') : '-',
-                        masuk: clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
-                        keluar: clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
-                        catatan: record.Catatan || '',
-                        sebab: record.Sebab || '',
-                        isLate: record.Status === 'LEWAT',
-                        isWBF: record.WBF
-                    });
+                    const rowData = [
+                        record.Nama || '-',
+                        record.WBF ? 'AKP' : 'Guru',
+                        clockIn ? clockIn.toLocaleDateString('ms-MY') : '-',
+                        clockIn ? clockIn.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
+                        clockOut ? clockOut.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' }) : '-',
+                        record.Catatan || '',
+                        record.Sebab || ''
+                    ];
+                    body.push(rowData);
                 });
 
                 doc.autoTable({
-                    columns: [
-                        { header: 'Nama', dataKey: 'nama' },
-                        { header: 'Guru/AKP', dataKey: 'jenis' },
-                        { header: 'Tarikh', dataKey: 'tarikh' },
-                        { header: 'Masuk', dataKey: 'masuk' },
-                        { header: 'Keluar', dataKey: 'keluar' },
-                        { header: 'Catatan Lewat', dataKey: 'catatan' },
-                        { header: 'Sebab Keluar Awal', dataKey: 'sebab' }
-                    ],
-                    body: tableRows,
+                    head: head,
+                    body: body,
                     startY: 50,
                     styles: { fontSize: 9 },
                     headStyles: { fillColor: [41, 128, 185], textColor: 255 },
                     didParseCell: function (data) {
-                        if (data.section === 'body' && data.row.raw.isWBF) {
-                            data.cell.styles.fillColor = [240, 240, 240];
-                        }
-                        if (data.column.dataKey === 'masuk' && data.row.raw.isLate) {
-                            data.cell.styles.textColor = [255, 0, 0];
-                            data.cell.styles.fontStyle = 'bold';
+                        const record = recordsToPrint[data.row.index];
+                        if (record && data.section === 'body') {
+                            if (record.WBF) {
+                                data.cell.styles.fillColor = [240, 240, 240];
+                            }
+                            if (data.column.index === 3 && record.Status === 'LEWAT') {
+                                data.cell.styles.textColor = [255, 0, 0];
+                                data.cell.styles.fontStyle = 'bold';
+                            }
                         }
                     }
                 });
